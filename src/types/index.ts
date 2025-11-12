@@ -1,3 +1,4 @@
+// src/types/index.ts
 export interface Message {
   id: string;
   message: string;
@@ -8,6 +9,8 @@ export interface Message {
 export interface LeadInstagram {
   id: string;
   name?: string;
+  username: string; // O @
+  avatarUrl: string; // URL da foto de perfil
   status?: number;
   lastMessageTest: string;
   dateCreated: Date;
@@ -37,4 +40,12 @@ export interface User {
   id: string;
   name: string;
   email: string;
+}
+export interface Chamado {
+  id: string;
+  leadId: string; // Para vincular ao LeadInstagram
+  name: string;
+  cpf: string;
+  descricao: string;
+  dateCreated: Date;
 }

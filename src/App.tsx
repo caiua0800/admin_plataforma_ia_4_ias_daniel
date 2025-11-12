@@ -7,27 +7,31 @@ import { LeadsInstagram } from "./pages/LeadsInstagram/LeadsInstagram";
 import { LeadsWebsite } from "./pages/LeadsWebsite/LeadsWebsite";
 import { ClientesPlataformaApp } from "./pages/ClientesPlataformaApp/ClientesPlataformaApp";
 import { Usuarios } from "./pages/Usuarios/Usuarios";
+import { Login } from "./pages/Login/Login";
+import { Relatorios } from "./pages/Relatorios/Relatorios"; // <-- PASSO 1: Importar a nova página
 
+// AppContainer (sem alteração)
 const AppContainer = styled.div`
   display: flex;
   height: 100vh;
-  background-color: #f3f4f6;
 `;
+
+// MainContent (sem alteração)
 const MainContent = styled.main`
   flex: 1;
   padding: 24px;
-  overflow-y: auto;
+  height: 100vh;
+  box-sizing: border-box;
 `;
 
+// AppLayout (sem alteração)
 function AppLayout() {
   return (
     <AppContainer>
-      {" "}
-      <Sidebar />{" "}
+      <Sidebar />
       <MainContent>
-        {" "}
-        <Outlet />{" "}
-      </MainContent>{" "}
+        <Outlet />
+      </MainContent>
     </AppContainer>
   );
 }
@@ -35,20 +39,26 @@ function AppLayout() {
 function App() {
   return (
     <AdminProvider>
-      {" "}
-      {/* O Provider envolve todas as rotas */}
       <BrowserRouter>
         <Routes>
+          {/* Rota para o login, fora do layout principal */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Suas rotas existentes, que usam o layout com sidebar */}
           <Route element={<AppLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/leads-instagram" element={<LeadsInstagram />} />
             <Route path="/leads-website" element={<LeadsWebsite />} />
             <Route path="/clientes" element={<ClientesPlataformaApp />} />
             <Route path="/usuarios" element={<Usuarios />} />
+            
+            {/* PASSO 2: Adicionar a nova rota para relatórios */}
+            <Route path="/relatorios" element={<Relatorios />} />
           </Route>
         </Routes>
       </BrowserRouter>
     </AdminProvider>
   );
 }
+
 export default App;

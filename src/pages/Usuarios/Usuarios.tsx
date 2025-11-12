@@ -1,49 +1,117 @@
-import { useState } from "react";
-import { useAdmin } from "../../contexts/AdminContext"; // Usando o Contexto!
+import { FormEvent, useState } from "react";
+import { useAdmin } from "../../contexts/AdminContext";
+import { UserPlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
+import { Modal } from "../../components/Modal/Modal";
+import * as S from "./Usuarios.styles";
 
 export function Usuarios() {
   const { admins, addAdmin } = useAdmin();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  // ... (Restante do código da página de usuários é idêntico ao da resposta com Tailwind, apenas adapte o JSX para usar styled-components se desejar)
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Para simplificar, vamos usar um JSX simples sem styled-components aqui
+  // Estado para o formulário do novo usuário
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => setIsModalOpen(false);
+
+  const handleAddUser = (e: FormEvent) => {
+    e.preventDefault();
+    if (newName && newEmail) {
+      addAdmin({ name: newName, email: newEmail });
+      setNewName("");
+      setNewEmail("");
+      handleCloseModal();
+    }
+  }
+
   return (
-    <div>
-      <h1>Gerenciamento de Usuários</h1>
-      <h2>Administradores ({admins.length}/5)</h2>
-      <ul>
-        {" "}
-        {admins.map((admin) => (
-          <li key={admin.id}>
-            {admin.name} ({admin.email})
-          </li>
-        ))}{" "}
-      </ul>
+    <>
+      <S.OuterBorder>
+        <S.GlassGap>
+          <S.InnerWrapper>
+            <S.Header>
+              <S.Title>Gerenciamento de Usuários</S.Title>
+              <S.AddButton onClick={handleOpenModal} disabled={admins.length >= 5}>
+                <UserPlusIcon />
+                Adicionar Usuário
+              </S.AddButton>
+            </S.Header>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          addAdmin({ name, email });
-        }}
+            <S.TableContainer>
+              <S.StyledTable>
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Cargo</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {admins.map((admin) => (
+                    <tr key={admin.id}>
+                      <td>
+                        <S.UserInfo>
+                          <S.Avatar src={`https://ui-avatars.com/api/?name=${admin.name.replace(' ', '+')}&background=4f46e5&color=fff`} />
+                          <div>
+                            <S.UserName>{admin.name}</S.UserName>
+                            <S.UserEmail>{admin.email}</S.UserEmail>
+                          </div>
+                        </S.UserInfo>
+                      </td>
+                      <td>Administrador</td>
+                      <td>
+                        <S.StatusBadge $isActive={true}>Ativo</S.StatusBadge>
+                      </td>
+                      <td>
+                        <S.ActionButtons>
+                          <button><PencilIcon /></button>
+                          <button><TrashIcon /></button>
+                        </S.ActionButtons>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </S.StyledTable>
+            </S.TableContainer>
+          </S.InnerWrapper>
+        </S.GlassGap>
+      </S.OuterBorder>
+
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={handleCloseModal} 
+        title="Cadastrar Novo Usuário"
       >
-        <h3>Novo Administrador</h3>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nome"
-        />
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-        />
-        <button type="submit" disabled={admins.length >= 5}>
-          Adicionar
-        </button>
-      </form>
-    </div>
+        <S.ModalForm onSubmit={handleAddUser}>
+          <S.InputGroup>
+            <label htmlFor="name">Nome Completo</label>
+            <S.Input 
+              id="name" 
+              type="text" 
+              placeholder="Ex: Pedro Henrique" 
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              required
+            />
+          </S.InputGroup>
+          <S.InputGroup>
+            <label htmlFor="email">E-mail</label>
+            <S.Input 
+              id="email" 
+              type="email" 
+              placeholder="Ex: pedro@email.com"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              required
+            />
+          </S.InputGroup>
+          <S.ModalButton type="submit">
+            Cadastrar
+          </S.ModalButton>
+        </S.ModalForm>
+      </Modal>
+    </>
   );
 }

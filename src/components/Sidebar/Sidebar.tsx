@@ -1,3 +1,4 @@
+// src/components/Sidebar/Sidebar.tsx
 import {
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
@@ -6,44 +7,60 @@ import {
 } from "@heroicons/react/24/outline";
 import * as S from "./Sidebar.styles";
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: ChartBarIcon },
+// Nova estrutura de navegação com grupos
+const navigationGroups = [
   {
-    name: "Leads Instagram",
-    href: "/leads-instagram",
-    icon: ChatBubbleLeftRightIcon,
+    title: "GERAL",
+    links: [{ name: "Dashboard", href: "/", icon: ChartBarIcon }],
   },
   {
-    name: "Leads Website",
-    href: "/leads-website",
-    icon: ChatBubbleLeftRightIcon,
+    title: "ATENDIMENTO",
+    links: [
+      {
+        name: "Leads Instagram",
+        href: "/leads-instagram",
+        icon: ChatBubbleLeftRightIcon,
+      },
+      {
+        name: "Leads Website",
+        href: "/leads-website",
+        icon: ChatBubbleLeftRightIcon,
+      },
+      {
+        name: "Clientes Plataforma & App",
+        href: "/clientes",
+        icon: ChatBubbleLeftRightIcon,
+      },
+    ],
   },
   {
-    name: "Clientes Plataforma & App",
-    href: "/clientes",
-    icon: ChatBubbleLeftRightIcon,
+    title: "ADMINISTRAÇÃO",
+    links: [
+      { name: "Usuários", href: "/usuarios", icon: UsersIcon },
+      { name: "Relatórios", href: "/relatorios", icon: DocumentTextIcon },
+    ],
   },
-  { name: "Usuários", href: "/usuarios", icon: UsersIcon },
-  { name: "Relatórios", href: "/relatorios", icon: DocumentTextIcon },
 ];
 
 export function Sidebar() {
   return (
     <S.Container>
-      {" "}
       <S.Header>
-        {" "}
-        <S.Title>Admin AI</S.Title>{" "}
-      </S.Header>{" "}
+        <S.Logo>AI</S.Logo>
+        <S.Title>Admin AI</S.Title>
+      </S.Header>
       <S.Nav>
-        {" "}
-        {navigation.map((item) => (
-          <S.StyledNavLink key={item.name} to={item.href}>
-            {" "}
-            <item.icon /> {item.name}{" "}
-          </S.StyledNavLink>
-        ))}{" "}
-      </S.Nav>{" "}
+        {navigationGroups.map((group) => (
+          <S.Section key={group.title}>
+            <S.SectionTitle>{group.title}</S.SectionTitle>
+            {group.links.map((item) => (
+              <S.StyledNavLink key={item.name} to={item.href}>
+                <item.icon /> {item.name}
+              </S.StyledNavLink>
+            ))}
+          </S.Section>
+        ))}
+      </S.Nav>
     </S.Container>
   );
 }
