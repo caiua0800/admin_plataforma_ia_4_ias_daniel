@@ -10,17 +10,23 @@ export interface LeadInstagram {
   id: string;
   name?: string;
   username: string; // O @
-  avatarUrl: string; // URL da foto de perfil
+  avatarUrl?: string; // URL da foto de perfil (pode ser undefined)
   status?: number;
-  lastMessageTest: string;
+  lastMessageText: string; 
+  last_message_date: Date | string;
   dateCreated: Date;
   messages: Message[];
+  
+  followers_count?: number;
+  follows_me?: boolean;
+  hasUnread?: boolean; // Para a notificação
+  lastClientMessageDate?: Date; // Para a regra de 24h
 }
 export interface LeadWebsite {
   id: string;
   name?: string;
   status?: number;
-  lastMessageTest: string;
+  lastMessageText: string;
   dateCreated: Date;
   city?: string;
   ipAddress?: string;
@@ -32,7 +38,7 @@ export interface ClientPlataformaApp {
   email: string;
   cpf: string;
   status?: number;
-  lastMessageTest: string;
+  lastMessageText: string;
   dateCreated: Date;
   messages: Message[];
 }
@@ -48,4 +54,10 @@ export interface Chamado {
   cpf: string;
   descricao: string;
   dateCreated: Date;
+}
+
+// --- NOVO TIPO ADICIONADO ---
+export interface InstagramStats {
+  total_chats: string;
+  active_today_chats: string;
 }

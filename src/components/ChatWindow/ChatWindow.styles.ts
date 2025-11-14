@@ -1,61 +1,8 @@
 // src/components/ChatWindow/ChatWindow.styles.ts
 import styled from "styled-components";
-// ... (Container, Placeholder, Header, Name, PauseButton, MessagesArea, MessageBox...)
 
-export const MessageBubble = styled.div<{ $isReply: boolean }>`
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 22px;
-  color: white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  ${(props) =>
-    props.$isReply
-      ? `
-        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
-        box-shadow: 0 4px 20px rgba(79, 70, 229, 0.6);
-        border-bottom-right-radius: 6px;
-      `
-      : `
-        background-color: rgba(51, 65, 85, 0.7);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
-        border-bottom-left-radius: 6px;
-      `}
-
-  p {
-    line-height: 1.6;
-  }
-
-  /* * NOVO ESTILO DE TABELA (COMO O CHATGPT/GEMINI) * */
-  table {
-    width: 100%;
-    margin-top: 12px;
-    border-collapse: collapse;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  th,
-  td {
-    padding: 10px 14px;
-    text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  th {
-    font-weight: 600;
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-  tr:last-child td {
-    border-bottom: none;
-  }
-`;
-
-// ... (InputArea, InputWrapper, Input, SendButton idênticos...)
-// ...
 export const Container = styled.div`
-  flex: 0 0 40%; /* 4/10 da largura */
+  flex: 1; /* Ocupa o espaço restante */
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -135,6 +82,81 @@ export const MessagesArea = styled.div`
 export const MessageBox = styled.div<{ $isReply: boolean }>`
   display: flex;
   justify-content: ${(props) => (props.$isReply ? "flex-end" : "flex-start")};
+`;
+
+// Este wrapper agrupa a Bolha da Mensagem e o Horário
+export const MessageWrapper = styled.div<{ $isReply: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: ${(props) => (props.$isReply ? "flex-end" : "flex-start")};
+  max-width: 90%;
+`;
+
+export const MessageBubble = styled.div<{ $isReply: boolean }>`
+  /* --- CORREÇÃO AQUI --- */
+  /* Removemos o max-width fixo de 70% para que a bolha possa 
+     se expandir até o limite do MessageWrapper (que é 90%) */
+  /* max-width: 70%; */ 
+  
+  /* Adicionamos 'word-break' para garantir que textos longos sem 
+     espaço quebrem corretamente e não estourem a bolha */
+  word-break: break-word;
+
+  padding: 12px 16px;
+  border-radius: 22px;
+  color: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  ${(props) =>
+    props.$isReply
+      ? `
+        background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+        box-shadow: 0 4px 20px rgba(79, 70, 229, 0.6);
+        border-bottom-right-radius: 6px;
+      `
+      : `
+        background-color: rgba(51, 65, 85, 0.7);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        border-bottom-left-radius: 6px;
+      `}
+
+  p {
+    line-height: 1.6;
+  }
+
+  /* * NOVO ESTILO DE TABELA (COMO O CHATGPT/GEMINI) * */
+  table {
+    width: 100%;
+    margin-top: 12px;
+    border-collapse: collapse;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th,
+  td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  th {
+    font-weight: 600;
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+`;
+
+export const Timestamp = styled.span<{ $isReply: boolean }>`
+  font-size: 0.75rem; /* 12px */
+  color: #64748b; /* slate-500 */
+  margin-top: 4px;
+  /* Adiciona um leve recuo para alinhar com o padding da bolha */
+  margin-right: ${(props) => (props.$isReply ? "12px" : "0")};
+  margin-left: ${(props) => (props.$isReply ? "0" : "12px")};
 `;
 
 export const InputArea = styled.div`

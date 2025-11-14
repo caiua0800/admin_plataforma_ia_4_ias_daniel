@@ -4,6 +4,7 @@ import {
   ChatBubbleLeftRightIcon,
   UsersIcon,
   DocumentTextIcon,
+  SparklesIcon, // <-- Ícone novo e mais apropriado
 } from "@heroicons/react/24/outline";
 import * as S from "./Sidebar.styles";
 
@@ -37,7 +38,9 @@ const navigationGroups = [
     title: "ADMINISTRAÇÃO",
     links: [
       { name: "Usuários", href: "/usuarios", icon: UsersIcon },
-      { name: "Relatórios", href: "/relatorios", icon: DocumentTextIcon },
+      // --- MUDANÇA AQUI ---
+      { name: "IA Interna", href: "/relatorios", icon: SparklesIcon }, 
+      // Mantive a rota /relatorios, mas mudei o nome e o ícone
     ],
   },
 ];

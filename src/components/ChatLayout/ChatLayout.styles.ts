@@ -31,7 +31,7 @@ export const InnerWrapper = styled.div`
   height: 100%;
   border-radius: 18px; /* Mais arredondado */
   border: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden;
+  // overflow: hidden;
   
   /* * O GRADIENTE ESCURO (NÃO MAIS PRETO SÓLIDO)
    * Do roxo-base para o azul-fundo

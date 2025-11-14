@@ -1,42 +1,47 @@
 // src/components/ChatList/ChatList.tsx
 import * as S from "./ChatList.styles";
+import type { LeadInstagram } from "../../types"; // Importando o tipo principal
 
-interface Chat {
-  id: string;
-  name?: string;
-  username?: string;
-  avatarUrl?: string;
-  cpf?: string;
-  lastMessageTest: string;
-  dateCreated: Date;
-}
-
-interface ChatListProps<T extends Chat> {
+// 1. Usa a interface importada (LeadInstagram) em vez de uma local duplicada
+//    Isso garante que 'last_message_date' e 'lastMessageText' estejam corretos.
+interface ChatListProps<T extends LeadInstagram> {
   chats: T[];
   selectedChatId: string | null;
   onSelectChat: (chat: T) => void;
   headerComponent?: React.ReactNode;
-  className?: string; // <-- 1. ADICIONE ISSO
+  className?: string;
 }
 
-export function ChatList<T extends Chat>({
+export function ChatList<T extends LeadInstagram>({
   chats,
   selectedChatId,
   onSelectChat,
   headerComponent,
-  className, // <-- 2. ADICIONE ISSO
+  className,
 }: ChatListProps<T>) {
-  // ... (função formatChatDate)
-  const formatChatDate = (date: Date) => {
-    const now = new Date();
-    if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  
+  // --- CORREÇÃO AQUI (Para o crash da data) ---
+  const formatChatDate = (dateInput: Date | string) => {
+    // 1. Garante que estamos trabalhando com um objeto Date
+    const dateObj = new Date(dateInput); 
+    
+    // 2. Checa se a data é válida
+    if (isNaN(dateObj.getTime())) {
+      return "--:--"; // Fallback se a data for inválida
     }
-    return date.toLocaleDateString([], { day: "2-digit", month: "2-digit" });
+    
+    const now = new Date();
+    
+    // 3. Compara usando o objeto Date
+    if (dateObj.toDateString() === now.toDateString()) {
+      return dateObj.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return dateObj.toLocaleDateString([], { day: "2-digit", month: "2-digit" });
   };
+  // --- FIM DA CORREÇÃO ---
 
   return (
-    <S.Container className={className}> {/* <-- 3. ADICIONE AQUI */}
+    <S.Container className={className}>
       {headerComponent}
       {chats.map((chat) => (
         <S.ChatItem
@@ -48,20 +53,41 @@ export function ChatList<T extends Chat>({
             src={
               chat.avatarUrl ||
               `https://ui-avatars.com/api/?name=${
-                chat.name || "User"
+                chat.username || chat.name || "User"
               }&background=4f46e5&color=fff`
             }
             alt={chat.name || chat.username}
           />
           <S.Content>
             <S.Info>
-              <S.Name>{chat.username ? `@${chat.username}` : chat.name}</S.Name>
-              <S.DateText>{formatChatDate(chat.dateCreated)}</S.DateText>
+              <S.Name>{chat.username ? `@${chat.username}` : (chat.name || chat.id)}</S.Name>
+              {/* 4. Passa a data (string ou Date) para a função correta */}
+              <S.DateText>{formatChatDate(chat.last_message_date)}</S.DateText>
             </S.Info>
+
+            {(typeof chat.followers_count === 'number' || chat.follows_me) && (
+              <S.MetaRow>
+                {typeof chat.followers_count === 'number' && (
+                  <S.FollowerCount>
+                    {chat.followers_count.toLocaleString('pt-BR')} seguidores
+                  </S.FollowerCount>
+                )}
+                {chat.follows_me && (
+                  <S.FollowsMeBadge>Segue você</S.FollowsMeBadge>
+                )}
+              </S.MetaRow>
+            )}
+            
+            {/* 5. Corrigido para 'lastMessageText' (do types/index.ts) */}
             <S.LastMessage>
-              {chat.cpf || chat.lastMessageTest}
+              {(chat as any).cpf || chat.lastMessageText} 
             </S.LastMessage>
           </S.Content>
+           
+           {chat.hasUnread && selectedChatId !== chat.id && (
+             <S.NotificationBadge />
+           )}
+           
         </S.ChatItem>
       ))}
     </S.Container>

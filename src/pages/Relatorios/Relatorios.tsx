@@ -1,116 +1,228 @@
-import { FormEvent, useState } from "react";
-import { CircleStackIcon, ChatBubbleLeftRightIcon, DocumentArrowDownIcon } from "@heroicons/react/24/solid";
+// src/pages/Relatorios/Relatorios.tsx
+import { FormEvent, useState, useRef, useEffect } from "react";
+import {
+  PaperAirplaneIcon,
+  CogIcon,
+  MagnifyingGlassIcon,
+  BoltIcon,
+} from "@heroicons/react/24/solid";
 import * as S from "./Relatorios.styles";
+// 1. Importar a nova função do servidor
+import { askInternalApi } from "../../servers/internalApi";
 
-type ReportType = 'source' | 'chat';
+// --- Tipos de Dados ---
+interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+}
 
+interface ChatHistory {
+  id: string;
+  title: string;
+  messages: Message[];
+}
+
+// --- Dados Mockados ---
+const mockHistory: ChatHistory[] = [
+  { id: '1', title: "Resumo de leads de ontem", messages: [] },
+  { id: '2', title: "Análise de sentimento (Instagram)", messages: [] },
+  { id: '3', title: "Usuários com problemas de PIX", messages: [] },
+];
+
+const mockIcebreakers = [
+  "Qual foi o total de leads hoje?",
+  "Me dê um resumo dos chamados abertos",
+  "Qual IA está com mais interações?",
+  "Algum cliente falou coisas emocionais?", // Adicionado seu exemplo
+];
+
+// --- Dados para a animação ---
+const typingSteps = [
+  { icon: <CogIcon />, text: "Pensando..." },
+  { icon: <MagnifyingGlassIcon />, text: "Buscando dados..." },
+  { icon: <BoltIcon />, text: "Processando..." },
+];
+
+
+// --- Componente Principal ---
 export function Relatorios() {
-  const [reportType, setReportType] = useState<ReportType>('source');
-  const [selectedSource, setSelectedSource] = useState('instagram');
-  const [chatIdentifier, setChatIdentifier] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentInput, setCurrentInput] = useState("");
+  const [chatHistory] = useState<ChatHistory[]>(mockHistory);
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const [typingStep, setTypingStep] = useState(0);
+  
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const isFormValid = () => {
-    if (!startDate || !endDate) return false;
-    if (reportType === 'source') return !!selectedSource;
-    if (reportType === 'chat') return chatIdentifier.trim() !== '';
-    return false;
+  // useEffect para rolar para o final
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages, isAiTyping]);
+
+  // useEffect para controlar o ciclo da animação
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isAiTyping) {
+      interval = setInterval(() => {
+        setTypingStep(prev => (prev + 1) % typingSteps.length);
+      }, 800);
+    } else {
+      setTypingStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [isAiTyping]);
+
+  // --- 2. FUNÇÃO DE ENVIO ATUALIZADA ---
+  const handleSendMessage = async (e?: FormEvent) => {
+    e?.preventDefault();
+    const text = currentInput.trim();
+    if (!text) return;
+
+    // Adiciona a mensagem do usuário
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      text: text,
+      sender: 'user',
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setCurrentInput("");
+    setIsAiTyping(true);
+
+    try {
+      // Chama a API real
+      const aiResponseText = await askInternalApi(text);
+      
+      // Cria a mensagem da IA com a resposta
+      const aiMessage: Message = {
+        id: `ai-${Date.now()}`,
+        text: aiResponseText, // Resposta da API
+        sender: 'ai',
+      };
+      setMessages(prev => [...prev, aiMessage]);
+
+    } catch (error) {
+      // Em caso de erro, manda uma mensagem de erro no chat
+      const errorMessage: Message = {
+        id: `ai-err-${Date.now()}`,
+        text: "Desculpe, não consegui processar sua solicitação. Tente novamente.",
+        sender: 'ai',
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      console.error(error);
+    } finally {
+      // Para a animação de "digitando"
+      setIsAiTyping(false);
+    }
   };
 
-  const handleGenerateReport = (e: FormEvent) => {
-    e.preventDefault();
-    if (!isFormValid()) return;
-
-    setIsGenerating(true);
-    const reportConfig = {
-      type: reportType,
-      source: reportType === 'source' ? selectedSource : undefined,
-      chat: reportType === 'chat' ? chatIdentifier : undefined,
-      dates: { start: startDate, end: endDate },
+  // --- 3. FUNÇÃO DE QUEBRA-GELO ATUALIZADA ---
+  const handleIcebreakerClick = async (text: string) => {
+    // Adiciona a mensagem do usuário (quebra-gelo)
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      text: text,
+      sender: 'user',
     };
+    setMessages(prev => [...prev, userMessage]);
+    setIsAiTyping(true);
 
-    console.log("Gerando relatório com a configuração:", reportConfig);
+    try {
+      // Chama a API real
+      const aiResponseText = await askInternalApi(text);
 
-    // Simula uma chamada de API para gerar o relatório
-    setTimeout(() => {
-      alert("Relatório gerado com sucesso! (Verifique o console)");
-      setIsGenerating(false);
-    }, 2000); // Simula 2 segundos de processamento
+      const aiMessage: Message = {
+        id: `ai-${Date.now()}`,
+        text: aiResponseText, // Resposta da API
+        sender: 'ai',
+      };
+      setMessages(prev => [...prev, aiMessage]);
+    
+    } catch (error) {
+      const errorMessage: Message = {
+        id: `ai-err-${Date.now()}`,
+        text: "Desculpe, não consegui processar sua solicitação. Tente novamente.",
+        sender: 'ai',
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      console.error(error);
+    } finally {
+      setIsAiTyping(false);
+    }
   };
 
   return (
     <S.OuterBorder>
       <S.GlassGap>
         <S.InnerWrapper>
-          <S.Header>
-            <S.Title>Exportar Relatórios</S.Title>
-          </S.Header>
+          <S.ChatContainer>
+            {/* Coluna 1: Histórico */}
+            <S.HistorySidebar>
+              <S.HistoryTitle>Chats Anteriores</S.HistoryTitle>
+              {chatHistory.map(chat => (
+                <S.HistoryItem key={chat.id}>
+                  {chat.title}
+                </S.HistoryItem>
+              ))}
+            </S.HistorySidebar>
 
-          <S.ConfigBox>
-            <form onSubmit={handleGenerateReport}>
-              <S.SectionTitle>1. Selecione o Tipo de Relatório</S.SectionTitle>
-              <S.RadioGroup>
-                <S.RadioLabel>
-                  <input type="radio" name="reportType" value="source" checked={reportType === 'source'} onChange={() => setReportType('source')} />
-                  <span><CircleStackIcon /> Por Fonte</span>
-                </S.RadioLabel>
-                <S.RadioLabel>
-                  <input type="radio" name="reportType" value="chat" checked={reportType === 'chat'} onChange={() => setReportType('chat')} />
-                  <span><ChatBubbleLeftRightIcon /> Por Chat Específico</span>
-                </S.RadioLabel>
-              </S.RadioGroup>
-
-              <S.SectionTitle>2. Configure os Filtros</S.SectionTitle>
-              
-              {reportType === 'source' && (
-                <S.OptionsContainer key="source">
-                  <label htmlFor="source-select">Fonte das Conversas</label>
-                  <S.Select id="source-select" value={selectedSource} onChange={(e) => setSelectedSource(e.target.value)}>
-                    <option value="instagram">Leads Instagram</option>
-                    <option value="website">Leads Website</option>
-                    <option value="platform">Clientes da Plataforma</option>
-                  </S.Select>
-                </S.OptionsContainer>
-              )}
-
-              {reportType === 'chat' && (
-                <S.OptionsContainer key="chat">
-                  <label htmlFor="chat-id">Identificador do Chat</label>
-                  <S.Input 
-                    id="chat-id" 
-                    type="text" 
-                    placeholder="Digite o nome, ID ou @username"
-                    value={chatIdentifier}
-                    onChange={(e) => setChatIdentifier(e.target.value)}
-                  />
-                </S.OptionsContainer>
-              )}
-
-              <S.DateRangeWrapper>
-                <div>
-                  <label htmlFor="start-date">Data de Início</label>
-                  <S.Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                </div>
-                <div>
-                  <label htmlFor="end-date">Data de Fim</label>
-                  <S.Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                </div>
-              </S.DateRangeWrapper>
-
-              <S.GenerateButton type="submit" disabled={!isFormValid() || isGenerating}>
-                {isGenerating ? (
-                  "Gerando..."
+            {/* Coluna 2: Interface do Chat */}
+            <S.ChatInterface>
+              <S.MessagesContainer ref={messagesContainerRef}>
+                {messages.length === 0 && !isAiTyping ? (
+                  // Tela de Boas-Vindas
+                  <S.WelcomeContainer>
+                    <div>
+                      <S.WelcomeTitle>Assistente de IA Interno</S.WelcomeTitle>
+                      <S.WelcomeSubtitle>Como posso ajudar a analisar seus dados hoje?</S.WelcomeSubtitle>
+                    </div>
+                    <S.IcebreakerGrid>
+                      {mockIcebreakers.map((text, i) => (
+                        <S.IcebreakerCard key={i} onClick={() => handleIcebreakerClick(text)}>
+                          {text}
+                        </S.IcebreakerCard>
+                      ))}
+                    </S.IcebreakerGrid>
+                  </S.WelcomeContainer>
                 ) : (
-                 <>
-                   <DocumentArrowDownIcon />
-                   Gerar Relatório
-                 </>
+                  // Tela de Chat Ativo
+                  <>
+                    {messages.map(msg => 
+                      msg.sender === 'user' ? (
+                        <S.UserMessage key={msg.id} dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br>') }} />
+                      ) : (
+                        <S.AiMessage key={msg.id} dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br>') }} />
+                      )
+                    )}
+                    {/* Animação de "pensando" (um passo de cada vez) */}
+                    {isAiTyping && (
+                      <S.AiTypingIndicator>
+                        {typingSteps[typingStep].icon}
+                        {typingSteps[typingStep].text}
+                      </S.AiTypingIndicator>
+                    )}
+                  </>
                 )}
-              </S.GenerateButton>
-            </form>
-          </S.ConfigBox>
+              </S.MessagesContainer>
+              
+              {/* Input de Chat */}
+              <S.ChatInputForm onSubmit={handleSendMessage}>
+                <S.InputWrapper>
+                  <S.ChatInput 
+                    type="text"
+                    placeholder="Pergunte algo para a IA..."
+                    value={currentInput}
+                    onChange={(e) => setCurrentInput(e.target.value)}
+                  />
+                  <S.SendButton type="submit">
+                    <PaperAirplaneIcon width={20} height={20} />
+                  </S.SendButton>
+                </S.InputWrapper>
+              </S.ChatInputForm>
+            </S.ChatInterface>
+          </S.ChatContainer>
         </S.InnerWrapper>
       </S.GlassGap>
     </S.OuterBorder>
