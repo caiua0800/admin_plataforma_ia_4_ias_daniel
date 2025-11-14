@@ -7,6 +7,7 @@ export const Container = styled.div`
   flex-direction: column;
   height: 100%;
   position: relative;
+  min-width: 0;
 `;
 
 export const Placeholder = styled.div`

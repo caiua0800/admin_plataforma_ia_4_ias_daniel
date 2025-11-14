@@ -1,28 +1,171 @@
 // src/pages/LeadsInstagram/LeadsInstagram.tsx
 import { useState, useMemo, useEffect, useCallback } from "react";
-import * as S from "./LeadsInstagram.styles";
+import styled from "styled-components"; // 1. Importar o 'styled'
 import { 
   getInstagramChats, 
   getInstagramMessages, 
   sendInstagramMessage,
-  getInstagramStats // <-- 1. Importar a nova função
+  getInstagramStats
 } from "../../servers/instagram"; 
-// import { mockedChamados } from "../../api/mockedData"; // <-- 2. Remover
 import type {
   LeadInstagram as LeadInstagramType,
-  // Chamado, // <-- 3. Remover
   Message,
-  InstagramStats // <-- 4. Importar o novo tipo
+  InstagramStats
 } from "../../types";
 import { ChatLayout } from "../../components/ChatLayout/ChatLayout";
-import { ChatList } from "../../components/ChatList/ChatList";
-import { ChatWindow } from "../../components/ChatWindow/ChatWindow";
-// import { ChamadosList } from "../../components/ChamadosList/ChamadosList"; // <-- 5. Remover
+
+// 2. Importar os componentes base com 'as'
+import { ChatList as BaseChatList } from "../../components/ChatList/ChatList";
+import { ChatWindow as BaseChatWindow } from "../../components/ChatWindow/ChatWindow";
+
 import {
   CalendarDaysIcon,
+  MagnifyingGlassIcon, // 3. Importar o ícone de pesquisa
 } from "@heroicons/react/24/outline";
 import { InstagramIcon } from "./InstagramIcon";
 import { useSocketStore } from "../../stores/socketStore";
+
+
+// --- ESTILOS ---
+// (Definidos localmente, assim como em LeadsWebsite.tsx)
+
+// 4. Definir as "travas" de layout 40/60
+const ChatList = styled(BaseChatList)`
+  flex: 0 0 40%; /* 40% para a lista */
+`;
+
+const ChatWindow = styled(BaseChatWindow)`
+  flex: 1; /* Ocupa o resto (60%) */
+`;
+
+// 5. Definir TODOS os outros estilos localmente
+const CompactHeaderContainer = styled.div`
+  padding: 24px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: rgba(0, 12, 51, 0.4);
+`;
+
+const TitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+`;
+
+const StatsRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+`;
+
+const MiniCard = styled.div`
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(
+    160deg,
+    rgba(79, 70, 229, 0.2) 0%,
+    rgba(6, 182, 212, 0.2) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+`;
+
+const MetricTitle = styled.p`
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-bottom: 4px;
+`;
+
+const MetricValue = styled.p`
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #e0e7ff;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+`;
+
+const FilterHeaderWrapper = styled.div`
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(15, 23, 42, 0.5);
+  display: flex;
+  gap: 12px;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  flex: 1; 
+`;
+
+const SearchIcon = styled(MagnifyingGlassIcon)`
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+`;
+
+const InputBase = styled.input`
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+
+  &::placeholder {
+    color: #64748b;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 10px #4f46e5;
+  }
+`;
+
+const SearchInput = styled(InputBase)`
+  padding-left: 44px;
+`;
+
+const DateButton = styled.button`
+  padding: 0 12px;
+  border-radius: 12px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #4f46e5;
+    color: #fff;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+// --- FIM DOS ESTILOS ---
+
 
 // Helper
 const getValidString = (value: any): string | undefined => {
@@ -34,8 +177,7 @@ const getValidString = (value: any): string | undefined => {
 
 export function LeadsInstagram() {
   const [allChats, setAllChats] = useState<LeadInstagramType[]>([]);
-  // const [chamados, setChamados] = useState<Chamado[]>(mockedChamados); // <-- 6. Remover
-  const [stats, setStats] = useState<InstagramStats | null>(null); // <-- 7. Adicionar estado de stats
+  const [stats, setStats] = useState<InstagramStats | null>(null);
   const [selectedChat, setSelectedChat] = useState<LeadInstagramType | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -48,13 +190,12 @@ export function LeadsInstagram() {
     try {
       setIsLoading(true);
       setError(null);
-      // 8. Chamar as duas APIs em paralelo
       const [instagramChats, instagramStats] = await Promise.all([
         getInstagramChats(),
         getInstagramStats()
       ]);
       setAllChats(instagramChats);
-      setStats(instagramStats); // 9. Salvar os stats
+      setStats(instagramStats);
     } catch (err) {
       setError("Não foi possível carregar as conversas.");
       console.error(err);
@@ -76,7 +217,6 @@ export function LeadsInstagram() {
     const { chatData } = latestEvent;
     const chatIndex = allChats.findIndex(c => c.id === chatData.id);
 
-    // Se o chat não está na lista (é um chat 100% novo), recarregue tudo
     if (chatIndex === -1) { 
       console.warn("Mensagem recebida para um chat novo/não carregado:", chatData.id);
       fetchChats(); 
@@ -86,7 +226,6 @@ export function LeadsInstagram() {
 
     const existingChat = allChats[chatIndex];
     
-    // Mapeia os dados do socket
     const updatedChatSummary: LeadInstagramType = {
         ...existingChat,
         lastMessageText: chatData.last_message_text,
@@ -174,13 +313,6 @@ export function LeadsInstagram() {
     }
   };
 
-  // 10. Remover 'handleChamadoClick'
-  /*
-  const handleChamadoClick = (chamado: Chamado) => {
-    ...
-  };
-  */
-
   // Envio de mensagem
   const handleSendMessage = async (messageText: string) => {
     if (!selectedChat) return;
@@ -210,44 +342,40 @@ export function LeadsInstagram() {
     }
   };
 
-  // 11. Remover 'totalChamados'
-  // const totalLeads = allChats.length; // (agora vem dos stats)
-  // const totalChamados = chamados.length; // (removido)
-
   const listHeader = (
     <>
-      {/* --- 12. ATUALIZAR OS CARDS --- */}
-      <S.CompactHeaderContainer>
-        <S.TitleRow>
+      {/* 6. Usar os componentes locais, SEM 'S.' */}
+      <CompactHeaderContainer>
+        <TitleRow>
           <InstagramIcon />
-          <S.SectionTitle>Leads Instagram</S.SectionTitle>
-        </S.TitleRow>
-        <S.StatsRow>
-          <S.MiniCard>
-            <S.MetricTitle>Total de Chats</S.MetricTitle>
-            <S.MetricValue>{isLoading ? "..." : (stats?.total_chats || 0)}</S.MetricValue>
-          </S.MiniCard>
-          <S.MiniCard>
-            <S.MetricTitle>Chats Ativos Hoje</S.MetricTitle>
-            <S.MetricValue>{isLoading ? "..." : (stats?.active_today_chats || 0)}</S.MetricValue>
-          </S.MiniCard>
-        </S.StatsRow>
-      </S.CompactHeaderContainer>
+          <SectionTitle>Leads Instagram</SectionTitle>
+        </TitleRow>
+        <StatsRow>
+          <MiniCard>
+            <MetricTitle>Total de Chats</MetricTitle>
+            <MetricValue>{isLoading ? "..." : (stats?.total_chats || 0)}</MetricValue>
+          </MiniCard>
+          <MiniCard>
+            <MetricTitle>Chats Ativos Hoje</MetricTitle>
+            <MetricValue>{isLoading ? "..." : (stats?.active_today_chats || 0)}</MetricValue>
+          </MiniCard>
+        </StatsRow>
+      </CompactHeaderContainer>
       
-      <S.FilterHeaderWrapper>
-        <S.SearchInputWrapper>
-          <S.SearchIcon />
-          <S.SearchInput
+      <FilterHeaderWrapper>
+        <SearchInputWrapper>
+          <SearchIcon />
+          <SearchInput
             type="text"
             placeholder="Pesquisar por @username..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </S.SearchInputWrapper>
-        <S.DateButton onClick={() => alert("Filtro de data clicado!")}>
+        </SearchInputWrapper>
+        <DateButton onClick={() => alert("Filtro de data clicado!")}>
           <CalendarDaysIcon />
-        </S.DateButton>
-      </S.FilterHeaderWrapper>
+        </DateButton>
+      </FilterHeaderWrapper>
     </>
   );
 
@@ -257,6 +385,7 @@ export function LeadsInstagram() {
 
   return (
     <ChatLayout>
+      {/* 7. Usar os componentes locais <ChatList> e <ChatWindow> */}
       <ChatList
         chats={filteredChats}
         selectedChatId={selectedChat?.id || null}
@@ -267,12 +396,6 @@ export function LeadsInstagram() {
         chat={selectedChat} 
         onSendMessage={handleSendMessage}
       />
-      {/* --- 13. REMOVER A COLUNA DE CHAMADOS --- */}
-      {/* <ChamadosList
-        chamados={chamados} 
-        onChamadoClick={handleChamadoClick}
-      /> 
-      */}
     </ChatLayout>
   );
 }

@@ -31,7 +31,11 @@ export const InnerWrapper = styled.div`
   height: 100%;
   border-radius: 18px; /* Mais arredondado */
   border: 1px solid rgba(255, 255, 255, 0.1);
-  // overflow: hidden;
+  
+  /* --- DESCOMENTE ESTA LINHA --- */
+  overflow: hidden; 
+  /* Isso garante que o container principal 
+     NÃO vai esticar se o conteúdo estourar. */
   
   /* * O GRADIENTE ESCURO (NÃO MAIS PRETO SÓLIDO)
    * Do roxo-base para o azul-fundo
