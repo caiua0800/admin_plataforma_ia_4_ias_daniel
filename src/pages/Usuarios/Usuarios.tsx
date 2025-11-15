@@ -1,13 +1,28 @@
 // src/pages/Usuarios/Usuarios.tsx
 import { FormEvent, useState } from "react";
-// 1. Importar o novo tipo do contexto
+// 1. O tipo importado permanece o mesmo
 import { useAdmin, NewAdminData } from "../../contexts/AdminContext";
 import { UserPlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
 import { Modal } from "../../components/Modal/Modal";
 import * as S from "./Usuarios.styles";
 
+// Componente simples de Loading
+const LoadingSpinner = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#fff' }}>
+    Carregando usuários...
+  </div>
+);
+
+// Componente simples de Erro
+const ErrorDisplay = ({ message }: { message: string }) => (
+  <div style={{ padding: '20px', color: '#f87171', textAlign: 'center' }}>
+    {message}
+  </div>
+);
+
 export function Usuarios() {
-  const { admins, addAdmin } = useAdmin();
+  // 2. Pegar os novos estados do contexto
+  const { admins, addAdmin, isLoading, error } = useAdmin();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // 2. Estado para o formulário (incluindo senha e erro)
@@ -33,7 +48,7 @@ export function Usuarios() {
     cleanForm();
   }
 
-  // 3. Atualizar a função para ser async e tratar erros
+  // 3. Esta função permanece a mesma, pois já interage com a API via 'addAdmin'
   const handleAddUser = async (e: FormEvent) => {
     e.preventDefault();
     setModalError(null); // Limpa erros antigos
@@ -60,6 +75,58 @@ export function Usuarios() {
     }
   };
 
+  // 4. Função para renderizar o conteúdo da tabela
+  const renderContent = () => {
+    if (isLoading) {
+      return <LoadingSpinner />;
+    }
+
+    if (error) {
+      return <ErrorDisplay message={error} />;
+    }
+
+    return (
+      <S.TableContainer>
+        <S.StyledTable>
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>Cargo</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* O .map(admins) agora usa os dados da API */}
+            {admins.map((admin) => (
+              <tr key={admin.id}>
+                <td>
+                  <S.UserInfo>
+                    <S.Avatar src={`https://ui-avatars.com/api/?name=${admin.name.replace(' ', '+')}&background=4f46e5&color=fff`} />
+                    <div>
+                      <S.UserName>{admin.name}</S.UserName>
+                      <S.UserEmail>{admin.email}</S.UserEmail>
+                    </div>
+                  </S.UserInfo>
+                </td>
+                <td>Administrador</td>
+                <td>
+                  <S.StatusBadge $isActive={true}>Ativo</S.StatusBadge>
+                </td>
+                <td>
+                  <S.ActionButtons>
+                    <button><PencilIcon /></button>
+                    <button><TrashIcon /></button>
+                  </S.ActionButtons>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </S.StyledTable>
+      </S.TableContainer>
+    );
+  };
+
   return (
     <>
       <S.OuterBorder>
@@ -67,52 +134,15 @@ export function Usuarios() {
           <S.InnerWrapper>
             <S.Header>
               <S.Title>Gerenciamento de Usuários</S.Title>
-              {/* O 'disabled' agora pode ser removido, a menos que você queira
-                  manter um limite visual (a API deve tratar o limite real) */}
               <S.AddButton onClick={handleOpenModal}>
                 <UserPlusIcon />
                 Adicionar Usuário
               </S.AddButton>
             </S.Header>
+            
+            {/* 5. Renderizar o conteúdo (Loading, Erro ou Tabela) */}
+            {renderContent()}
 
-            <S.TableContainer>
-              <S.StyledTable>
-                <thead>
-                  <tr>
-                    <th>Usuário</th>
-                    <th>Cargo</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* O .map(admins) continuará funcionando como antes */}
-                  {admins.map((admin) => (
-                    <tr key={admin.id}>
-                      <td>
-                        <S.UserInfo>
-                          <S.Avatar src={`https://ui-avatars.com/api/?name=${admin.name.replace(' ', '+')}&background=4f46e5&color=fff`} />
-                          <div>
-                            <S.UserName>{admin.name}</S.UserName>
-                            <S.UserEmail>{admin.email}</S.UserEmail>
-                          </div>
-                        </S.UserInfo>
-                      </td>
-                      <td>Administrador</td>
-                      <td>
-                        <S.StatusBadge $isActive={true}>Ativo</S.StatusBadge>
-                      </td>
-                      <td>
-                        <S.ActionButtons>
-                          <button><PencilIcon /></button>
-                          <button><TrashIcon /></button>
-                        </S.ActionButtons>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </S.StyledTable>
-            </S.TableContainer>
           </S.InnerWrapper>
         </S.GlassGap>
       </S.OuterBorder>

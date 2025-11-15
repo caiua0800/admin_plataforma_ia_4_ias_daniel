@@ -74,10 +74,9 @@ export const TopMetricsGrid = styled.div`
 
 export const MainContentGrid = styled.div`
   display: grid;
-  // AJUSTE: Coluna de leads (esquerda) é 2x maior que a de suporte (direita)
-  grid-template-columns: 2fr 1fr; 
+  // AJUSTE: Removida a coluna de suporte (era 2fr 1fr), agora é apenas 1 coluna
+  grid-template-columns: 1fr; 
   gap: 24px;
-  // AJUSTE: Impede que o item menor (suporte) se estique verticalmente
   align-items: start;
 
   @media (max-width: 1024px) {
@@ -95,6 +94,11 @@ export const SubGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
+
+  /* Adicionado para responsividade dos cards menores */
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 // --- CARDS DE MÉTRICA (Estilo Unificado) ---
@@ -143,7 +147,6 @@ export const ChartBox = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 420px;
-
 `;
 
 export const SectionTitle = styled.h2`
@@ -190,51 +193,5 @@ export const BarLabel = styled.span`
   font-size: 0.75rem; font-weight: 500; color: #94a3b8;
 `;
 
-// -- NOVO COMPONENTE DE SUPORTE INTEGRADO --
-export const SupportTicketsWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex: 1;
-  @media (max-width: 500px) { flex-direction: column; }
-`;
-
-export const SupportChartContainer = styled.div`
-  flex: 0 0 140px;
-  height: 140px;
-`;
-
-export const SupportDataList = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-export const SupportDataItem = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-export const DataLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.875rem;
-  color: #cbd5e1;
-`;
-
-export const ColorDot = styled.div<{ $color: string }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: ${props => props.$color};
-  box-shadow: 0 0 8px ${props => props.$color};
-`;
-
-export const DataValue = styled.div`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #fff;
-`;
+// -- ESTILOS DE SUPORTE REMOVIDOS --
+// (SupportTicketsWrapper, SupportChartContainer, SupportDataList, etc. foram removidos)

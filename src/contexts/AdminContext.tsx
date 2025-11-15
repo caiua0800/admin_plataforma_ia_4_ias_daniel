@@ -1,20 +1,62 @@
 // src/contexts/AdminContext.tsx
-import { createContext, useState, useContext, ReactNode } from "react";
-import { mockedUsers } from "../api/mockedData";
+import { 
+  createContext, 
+  useState, 
+  useContext, 
+  ReactNode, 
+  useEffect // 1. Importar useEffect
+} from "react";
+// import { mockedUsers } from "../api/mockedData"; // 2. Remover dados mocados
 import { User } from "../types";
 import { registerUser, RegisterResult } from "../servers/authApi";
+import apiFetch from "../servers/apiClient"; // 3. Importar o apiFetch
 
 export type NewAdminData = Omit<User, "id"> & { password: string };
 
+// 4. Atualizar a interface do Contexto
 interface AdminContextType {
   admins: User[];
   addAdmin: (admin: NewAdminData) => Promise<RegisterResult>;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  const [admins, setAdmins] = useState<User[]>(mockedUsers);
+  // 5. Atualizar os estados
+  const [admins, setAdmins] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 6. Adicionar o useEffect para buscar os usuários da API
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Chamar a API de usuários usando o wrapper que já tem o token
+        const response: any[] = await apiFetch('api/users');
+        
+        // Mapear a resposta da API para o formato User[]
+        const loadedUsers: User[] = response.map((item: any) => ({
+          id: item.json.id.toString(), // Converter ID para string
+          name: item.json.name,
+          email: item.json.email,
+        }));
+        
+        setAdmins(loadedUsers);
+      } catch (err: any) {
+        console.error("Erro ao buscar usuários:", err);
+        setError(err.message || "Não foi possível carregar os usuários.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAdmins();
+  }, []); // O array vazio garante que isso rode apenas uma vez
 
   const addAdmin = async (adminData: NewAdminData): Promise<RegisterResult> => {
     try {
@@ -62,7 +104,8 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AdminContext.Provider value={{ admins, addAdmin }}>
+    // 7. Expor os novos estados no Provider
+    <AdminContext.Provider value={{ admins, addAdmin, isLoading, error }}>
       {children}
     </AdminContext.Provider>
   );
