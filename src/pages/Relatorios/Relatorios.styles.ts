@@ -7,7 +7,6 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-// --- NOVA ANIMAÇÃO: Spin para o ícone ---
 const spin = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -65,6 +64,34 @@ export const HistorySidebar = styled.div`
   &::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 3px; }
 `;
 
+// --- BOTÃO NOVO CHAT ---
+export const NewChatButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: rgba(79, 70, 229, 0.3);
+  border: 1px solid #4f46e5;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  margin-bottom: 16px;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  &:hover {
+    background-color: rgba(79, 70, 229, 0.5);
+    box-shadow: 0 0 15px rgba(79, 70, 229, 0.5);
+  }
+`;
+
 export const HistoryTitle = styled.h2`
   font-size: 1rem;
   font-weight: 600;
@@ -74,7 +101,13 @@ export const HistoryTitle = styled.h2`
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 `;
 
-export const HistoryItem = styled.div`
+// --- HistoryItem CORRIGIDO ---
+export const HistoryItem = styled.div<{ $isActive?: boolean }>`
+  /* --- ADIÇÕES AQUI --- */
+  display: flex;
+  align-items: center;
+  /* ------------------ */
+
   padding: 12px 16px;
   font-size: 0.875rem;
   color: #cbd5e1;
@@ -92,6 +125,16 @@ export const HistoryItem = styled.div`
     border-color: #4f46e5;
     transform: translateX(3px);
   }
+
+  /* Estilo para o item ativo */
+  ${(props) =>
+    props.$isActive &&
+    `
+    background-color: rgba(79, 70, 229, 0.4);
+    color: #fff;
+    border-color: #4f46e5;
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.3);
+  `}
 `;
 
 // --- Coluna 2: Interface Principal do Chat ---
@@ -149,12 +192,12 @@ export const UserMessage = styled(MessageBubble)`
   color: #fff;
 `;
 
-// --- CORRIGIDO: Animação de "digitando" (agora um único item) ---
+// --- Animação de "digitando" ---
 export const AiTypingIndicator = styled.div`
   align-self: flex-start;
   display: flex;
   align-items: center;
-  gap: 10px; /* Espaço entre ícone e texto */
+  gap: 10px; 
   min-height: 48px; 
   padding: 14px 20px;
   background-color: rgba(51, 65, 85, 0.7);
@@ -171,14 +214,9 @@ export const AiTypingIndicator = styled.div`
     width: 18px;
     height: 18px;
     color: #a855f7;
-    /* Animação de giro */
     animation: ${spin} 1.2s linear infinite;
   }
 `;
-
-// --- REMOVIDO: O 'TypingStep' não é mais necessário ---
-// export const TypingStep = styled.span` ... `
-
 
 // --- Tela de Boas-Vindas e Quebra-Gelos ---
 export const WelcomeContainer = styled.div`
@@ -186,7 +224,7 @@ export const WelcomeContainer = styled.div`
   display: flex;
   flex-direction: column; 
   align-items: center;
-  justify-content: center; /* Centraliza o bloco */
+  justify-content: center; 
   padding: 24px;
   text-align: center;
   animation: ${fadeIn} 0.5s ease-out;
@@ -212,9 +250,8 @@ export const IcebreakerGrid = styled.div`
   gap: 16px;
   width: 100%;
   max-width: 700px;
-  /* CORRIGIDO: margin-top: auto para empurrar para baixo */
   margin-top: auto; 
-  padding-bottom: 16px; /* Espaçamento do input */
+  padding-bottom: 16px; 
 `;
 
 export const IcebreakerCard = styled.div`

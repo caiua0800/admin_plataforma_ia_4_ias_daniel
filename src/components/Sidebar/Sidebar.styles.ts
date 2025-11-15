@@ -57,11 +57,24 @@ export const Title = styled.h1`
 `;
 
 export const Nav = styled.nav`
-  flex: 1;
+  flex: 1; /* Isso faz o <nav> crescer e empurrar o <Footer> para baixo */
   padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-y: auto; /* Adiciona scroll se os links não couberem */
+
+  /* Estilização da barra de scroll (opcional, mas elegante) */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(79, 70, 229, 0.5);
+    border-radius: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 `;
 
 export const Section = styled.div``;
@@ -118,6 +131,42 @@ export const StyledNavLink = styled(NavLink)`
       border-radius: 3px;
       box-shadow: 0 0 8px #fff;
     }
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+  }
+`;
+
+// --- ADIÇÃO DOS ESTILOS DE LOGOUT ---
+
+export const Footer = styled.div`
+  padding: 16px;
+  margin-top: auto; /* Garante que ele fique no final */
+  border-top: 1px solid rgba(255, 255, 255, 0.1); /* Linha separadora */
+`;
+
+export const LogoutButton = styled.button`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #94a3b8; /* Cor cinza (inativo) */
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  /* Efeito de hover vermelho (para indicar "saída") */
+  &:hover {
+    background-color: rgba(239, 68, 68, 0.1); /* Fundo vermelho fraco */
+    color: #f87171; /* Texto vermelho */
   }
 
   svg {

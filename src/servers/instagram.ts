@@ -1,15 +1,14 @@
 // src/servers/instagram.ts
-// 1. Importar o novo tipo
-import type { LeadInstagram, Message, InstagramStats } from "../types";
+import apiFetch from './apiClient'; // 1. Importar o novo cliente centralizado
+import type {
+  LeadInstagram,
+  Message,
+  InstagramStats,
+} from "../types";
+// Importa o tipo da resposta das mensagens
+import { MessagesResponse } from "./instagramTypes"; // (Vamos criar este arquivinho)
 
-const BASE_URL = "https://65b10343b15c.ngrok-free.app/webhook/";
-const API_KEY = "minha_chave_de_api";
-
-const getAuthHeader = () => {
-  const credentials = btoa(`X-API-KEY:${API_KEY}`);
-  return `Basic ${credentials}`; 
-};
-
+// 2. Lógica de validação (sem alteração)
 const getValidString = (value: any): string | undefined => {
   if (typeof value === 'string' && value !== "undefined" && value !== "false") {
     return value;
@@ -17,25 +16,17 @@ const getValidString = (value: any): string | undefined => {
   return undefined;
 };
 
-
+/**
+ * Busca os chats do Instagram.
+ */
 export const getInstagramChats = async (page = 1): Promise<LeadInstagram[]> => {
-  // ... (código da função sem alteração)
   try {
-    const response = await fetch(`${BASE_URL}api/chats?tipo=instagram&page=${page}`, {
-      headers: {
-        "Authorization": getAuthHeader(),
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
+    // 3. Usa apiFetch (que já tem o token)
+    const data = await apiFetch(`api/chats?tipo=instagram&page=${page}`, {
+      method: 'GET'
     });
 
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar chats: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log(data)
-
+    // 4. A lógica de mapeamento dos dados continua a mesma
     const chats: LeadInstagram[] = data.map((item: any) => ({
       id: item.json.id,
       lastMessageText: item.json.last_message_text,
@@ -53,63 +44,42 @@ export const getInstagramChats = async (page = 1): Promise<LeadInstagram[]> => {
 
   } catch (error) {
     console.error("Falha em getInstagramChats:", error);
+    // Relança o erro para o apiClient/componente tratar
     throw error;
   }
 };
 
-// --- 2. NOVA FUNÇÃO ADICIONADA ---
 /**
  * Busca as estatísticas de chats do Instagram.
  */
 export const getInstagramStats = async (): Promise<InstagramStats> => {
   try {
-    const response = await fetch(`${BASE_URL}api/stats?tipo=instagram`, {
-      headers: {
-        "Authorization": getAuthHeader(),
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
+    // 3. Usa apiFetch
+    const data = await apiFetch(`api/stats?tipo=instagram`, {
+      method: 'GET'
     });
-
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar estatísticas: ${response.statusText}`);
-    }
-
-    return await response.json();
-
+    return data;
   } catch (error) {
     console.error("Falha em getInstagramStats:", error);
     // Retorna um fallback em caso de erro
     return { total_chats: "0", active_today_chats: "0" };
   }
 };
-// --- FIM DA NOVA FUNÇÃO ---
 
-
-export interface MessagesResponse {
-  messages: Message[];
-  lastClientMessageDate?: Date;
-}
-
+/**
+ * Busca as mensagens de um chat específico do Instagram.
+ */
 export const getInstagramMessages = async (chatId: string, page = 1): Promise<MessagesResponse> => {
-  // ... (código da função sem alteração)
+  // O ID do path parece ser estático para esta rota
   const API_PATH_ID = "a5759361-2234-4ec2-b75e-890e86a917b3";
   
   try {
-    const response = await fetch(`${BASE_URL}${API_PATH_ID}/api/chats/instagram/${chatId}/messages?page=${page}`, {
-      headers: {
-        "Authorization": getAuthHeader(),
-        "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true",
-      },
+    // 3. Usa apiFetch
+    const data: any[] = await apiFetch(`${API_PATH_ID}/api/chats/instagram/${chatId}/messages?page=${page}`, {
+      method: 'GET'
     });
 
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar mensagens: ${response.statusText}`);
-    }
-
-    const data: any[] = await response.json();
-
+    // 4. A lógica de mapeamento dos dados continua a mesma
     data.sort((a, b) => {
       const dateA = new Date(a.json.date_created).getTime();
       const dateB = new Date(b.json.date_created).getTime();
@@ -140,8 +110,10 @@ export const getInstagramMessages = async (chatId: string, page = 1): Promise<Me
   }
 };
 
+/**
+ * Envia uma mensagem pelo Instagram.
+ */
 export const sendInstagramMessage = async (chatId: string, message: string): Promise<Message> => {
-  // ... (código da função sem alteração)
   const body = {
     tipo: "instagram",
     chat_id: chatId,
@@ -149,37 +121,34 @@ export const sendInstagramMessage = async (chatId: string, message: string): Pro
     isInstagram: true
   };
 
-  const response = await fetch(`${BASE_URL}api/message/send`, {
-    method: 'POST',
-    headers: {
-      "Authorization": getAuthHeader(),
-      "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    // 3. Usa apiFetch
+    const data = await apiFetch(`api/message/send`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
 
-  if (!response.ok) {
-    throw new Error("Falha ao enviar mensagem");
-  }
+    // 4. A lógica de mapeamento dos dados continua a mesma
+    if (data && data.json) {
+      return {
+        id: data.json.id.toString(),
+        message: data.json.message,
+        isReply: data.json.is_reply,
+        senderName: data.json.sender_name,
+        dateCreated: new Date(data.json.date_created),
+      };
+    }
 
-  const data = await response.json();
-
-  if (data && data.json) {
+    // Fallback (se a API não retornar a mensagem)
     return {
-      id: data.json.id.toString(),
-      message: data.json.message,
-      isReply: data.json.is_reply,
-      senderName: data.json.sender_name,
-      dateCreated: new Date(data.json.date_created),
+      id: `local-${Date.now()}`,
+      message: message,
+      isReply: true,
+      senderName: "Atendente",
+      dateCreated: new Date(),
     };
+  } catch (error) {
+    console.error("Falha ao enviar mensagem:", error);
+    throw error;
   }
-
-  return {
-    id: `local-${Date.now()}`,
-    message: message,
-    isReply: true,
-    senderName: "Atendente",
-    dateCreated: new Date(),
-  };
 };

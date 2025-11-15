@@ -1,3 +1,4 @@
+// src/pages/Login/Login.styles.ts
 import styled, { keyframes } from "styled-components";
 
 // --- Animações ---
@@ -128,6 +129,10 @@ export const Input = styled.input`
     border-color: #4f46e5;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 15px rgba(79, 70, 229, 0.7);
   }
+
+  &:disabled {
+    opacity: 0.5;
+  }
 `;
 
 export const ForgotPassword = styled.a`
@@ -164,4 +169,20 @@ export const LoginButton = styled.button`
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(168, 85, 247, 0.6);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 5px 20px rgba(168, 85, 247, 0.4);
+  }
+`;
+
+export const ErrorMessage = styled.p`
+  font-size: 0.875rem;
+  color: #f87171; /* Cor vermelha (tailwind red-400) */
+  text-align: center;
+  margin-top: -12px; /* Puxa para mais perto do input */
+  margin-bottom: -8px; /* Reduz o espaço antes do "Esqueceu a senha" */
+  animation: ${fadeIn} 0.3s ease-out;
 `;

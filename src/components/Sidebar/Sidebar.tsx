@@ -3,12 +3,13 @@ import {
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
   UsersIcon,
-  DocumentTextIcon,
-  SparklesIcon, // <-- Ícone novo e mais apropriado
+  SparklesIcon,
+  ArrowRightOnRectangleIcon, // 1. Importar ícone de Sair
 } from "@heroicons/react/24/outline";
 import * as S from "./Sidebar.styles";
+import { useNavigate } from "react-router-dom"; // 2. Importar useNavigate
 
-// Nova estrutura de navegação com grupos
+// ... (navigationGroups permanece igual)
 const navigationGroups = [
   {
     title: "GERAL",
@@ -38,20 +39,31 @@ const navigationGroups = [
     title: "ADMINISTRAÇÃO",
     links: [
       { name: "Usuários", href: "/usuarios", icon: UsersIcon },
-      // --- MUDANÇA AQUI ---
       { name: "IA Interna", href: "/relatorios", icon: SparklesIcon }, 
-      // Mantive a rota /relatorios, mas mudei o nome e o ícone
     ],
   },
 ];
 
+
 export function Sidebar() {
+  // 3. Hook para navegação
+  const navigate = useNavigate();
+
+  // 4. Função de Logout
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    navigate("/login");
+  };
+
   return (
     <S.Container>
       <S.Header>
         <S.Logo>AI</S.Logo>
         <S.Title>Admin AI</S.Title>
       </S.Header>
+      
+      {/* Navegação principal */}
       <S.Nav>
         {navigationGroups.map((group) => (
           <S.Section key={group.title}>
@@ -64,6 +76,14 @@ export function Sidebar() {
           </S.Section>
         ))}
       </S.Nav>
+
+      {/* 5. Adicionar o Footer com o botão de Sair */}
+      <S.Footer>
+        <S.LogoutButton onClick={handleLogout}>
+          <ArrowRightOnRectangleIcon />
+          Sair
+        </S.LogoutButton>
+      </S.Footer>
     </S.Container>
   );
 }

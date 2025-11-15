@@ -5,36 +5,36 @@ import {
   CogIcon,
   MagnifyingGlassIcon,
   BoltIcon,
+  PlusIcon,
 } from "@heroicons/react/24/solid";
 import * as S from "./Relatorios.styles";
-// 1. Importar a nova função do servidor
-import { askInternalApi } from "../../servers/internalApi";
+// 1. Importar as funções ATUALIZADAS e os novos TIPOS
+import {
+  askInternalApi,
+  getInternalChats,
+  getInternalChatMessages, // <- NOVO
+  type InternalChat,
+  type InternalMessageTurn, // <- NOVO
+} from "../../servers/internalApi";
 
 // --- Tipos de Dados ---
 interface Message {
   id: string;
   text: string;
-  sender: 'user' | 'ai';
+  sender: "user" | "ai";
 }
 
 interface ChatHistory {
   id: string;
   title: string;
-  messages: Message[];
 }
 
-// --- Dados Mockados ---
-const mockHistory: ChatHistory[] = [
-  { id: '1', title: "Resumo de leads de ontem", messages: [] },
-  { id: '2', title: "Análise de sentimento (Instagram)", messages: [] },
-  { id: '3', title: "Usuários com problemas de PIX", messages: [] },
-];
-
+// --- Dados Mockados (APENAS ICEBREAKERS) ---
 const mockIcebreakers = [
   "Qual foi o total de leads hoje?",
   "Me dê um resumo dos chamados abertos",
   "Qual IA está com mais interações?",
-  "Algum cliente falou coisas emocionais?", // Adicionado seu exemplo
+  "Algum cliente falou coisas emocionais?",
 ];
 
 // --- Dados para a animação ---
@@ -44,30 +44,48 @@ const typingSteps = [
   { icon: <BoltIcon />, text: "Processando..." },
 ];
 
-
 // --- Componente Principal ---
 export function Relatorios() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState("");
-  const [chatHistory] = useState<ChatHistory[]>(mockHistory);
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [typingStep, setTypingStep] = useState(0);
-  
+
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // useEffect para rolar para o final
+  // useEffect para buscar o histórico de chats na API (sem alteração)
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const chatsFromApi: InternalChat[] = await getInternalChats();
+        const formattedHistory = chatsFromApi.map((chat) => ({
+          id: chat.id,
+          title: chat.name === "undefined" ? "Novo Chat" : chat.name,
+        }));
+        setChatHistory(formattedHistory);
+      } catch (error) {
+        console.error("Erro ao buscar histórico de chats:", error);
+      }
+    };
+    fetchHistory();
+  }, []);
+
+  // useEffect para rolar para o final (sem alteração)
   useEffect(() => {
     if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
     }
   }, [messages, isAiTyping]);
 
-  // useEffect para controlar o ciclo da animação
+  // useEffect para controlar o ciclo da animação (sem alteração)
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isAiTyping) {
       interval = setInterval(() => {
-        setTypingStep(prev => (prev + 1) % typingSteps.length);
+        setTypingStep((prev) => (prev + 1) % typingSteps.length);
       }, 800);
     } else {
       setTypingStep(0);
@@ -75,84 +93,119 @@ export function Relatorios() {
     return () => clearInterval(interval);
   }, [isAiTyping]);
 
-  // --- 2. FUNÇÃO DE ENVIO ATUALIZADA ---
+  // --- 2. ATUALIZADO: Handler para clicar em um item do histórico ---
+  const handleHistoryClick = async (chatId: string) => {
+    setSelectedChatId(chatId);
+    setMessages([]); // Limpa as mensagens atuais
+    setIsAiTyping(true); // Mostra o "loading"
+
+    try {
+      // Busca os "turnos" de mensagens da API
+      const messageTurns: InternalMessageTurn[] =
+        await getInternalChatMessages(chatId);
+
+      // "Achata" (transforma) os turnos no formato que o chat espera
+      const flattenedMessages: Message[] = messageTurns.flatMap((turn) => {
+        // Cria uma ID única para o turno (baseada no ID do banco)
+        const userMsgId = `turn-${turn.id}-user`;
+        const aiMsgId = `turn-${turn.id}-ai`;
+
+        // Retorna um array com as duas mensagens
+        return [
+          {
+            id: userMsgId,
+            text: turn.client_message,
+            sender: "user" as const,
+          },
+          {
+            id: aiMsgId,
+            text: turn.ai_message,
+            sender: "ai" as const,
+          },
+        ];
+      });
+
+      setMessages(flattenedMessages);
+    } catch (error) {
+      console.error("Erro ao buscar mensagens do chat:", error);
+      setMessages([
+        {
+          id: "err-1",
+          text: "Erro ao carregar o histórico deste chat.",
+          sender: "ai",
+        },
+      ]);
+    } finally {
+      setIsAiTyping(false); // Para o "loading"
+    }
+  };
+
+  // Handler para criar um novo chat (sem alteração)
+  const handleNewChat = () => {
+    setSelectedChatId(null);
+    setMessages([]);
+  };
+
+  // Lógica de envio de mensagem (isolada, sem alteração)
+  const submitMessage = async (text: string) => {
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      text: text,
+      sender: "user",
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsAiTyping(true);
+
+    try {
+      const { response: aiResponseText, chat_id: returnedChatId } =
+        await askInternalApi(text, selectedChatId);
+
+      const aiMessage: Message = {
+        id: `ai-${Date.now()}`,
+        text: aiResponseText,
+        sender: "ai",
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+
+      if (returnedChatId !== selectedChatId) {
+        setSelectedChatId(returnedChatId);
+        if (!chatHistory.find((chat) => chat.id === returnedChatId)) {
+          const newChatItem: ChatHistory = {
+            id: returnedChatId,
+            title: text,
+          };
+          setChatHistory((prev) => [newChatItem, ...prev]);
+        }
+      }
+    } catch (error) {
+      const errorMessage: Message = {
+        id: `ai-err-${Date.now()}`,
+        text: "Desculpe, não consegui processar sua solicitação. Tente novamente.",
+        sender: "ai",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      console.error(error);
+    } finally {
+      setIsAiTyping(false);
+    }
+  };
+
+  // Handler de envio do formulário (sem alteração)
   const handleSendMessage = async (e?: FormEvent) => {
     e?.preventDefault();
     const text = currentInput.trim();
     if (!text) return;
-
-    // Adiciona a mensagem do usuário
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      text: text,
-      sender: 'user',
-    };
-    setMessages(prev => [...prev, userMessage]);
     setCurrentInput("");
-    setIsAiTyping(true);
-
-    try {
-      // Chama a API real
-      const aiResponseText = await askInternalApi(text);
-      
-      // Cria a mensagem da IA com a resposta
-      const aiMessage: Message = {
-        id: `ai-${Date.now()}`,
-        text: aiResponseText, // Resposta da API
-        sender: 'ai',
-      };
-      setMessages(prev => [...prev, aiMessage]);
-
-    } catch (error) {
-      // Em caso de erro, manda uma mensagem de erro no chat
-      const errorMessage: Message = {
-        id: `ai-err-${Date.now()}`,
-        text: "Desculpe, não consegui processar sua solicitação. Tente novamente.",
-        sender: 'ai',
-      };
-      setMessages(prev => [...prev, errorMessage]);
-      console.error(error);
-    } finally {
-      // Para a animação de "digitando"
-      setIsAiTyping(false);
-    }
+    await submitMessage(text);
   };
 
-  // --- 3. FUNÇÃO DE QUEBRA-GELO ATUALIZADA ---
+  // Handler do icebreaker (sem alteração)
   const handleIcebreakerClick = async (text: string) => {
-    // Adiciona a mensagem do usuário (quebra-gelo)
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      text: text,
-      sender: 'user',
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setIsAiTyping(true);
-
-    try {
-      // Chama a API real
-      const aiResponseText = await askInternalApi(text);
-
-      const aiMessage: Message = {
-        id: `ai-${Date.now()}`,
-        text: aiResponseText, // Resposta da API
-        sender: 'ai',
-      };
-      setMessages(prev => [...prev, aiMessage]);
-    
-    } catch (error) {
-      const errorMessage: Message = {
-        id: `ai-err-${Date.now()}`,
-        text: "Desculpe, não consegui processar sua solicitação. Tente novamente.",
-        sender: 'ai',
-      };
-      setMessages(prev => [...prev, errorMessage]);
-      console.error(error);
-    } finally {
-      setIsAiTyping(false);
-    }
+    await submitMessage(text);
   };
 
+  // --- Renderização (JSX) ---
+  // (O JSX abaixo permanece idêntico ao da versão anterior)
   return (
     <S.OuterBorder>
       <S.GlassGap>
@@ -160,10 +213,19 @@ export function Relatorios() {
           <S.ChatContainer>
             {/* Coluna 1: Histórico */}
             <S.HistorySidebar>
+              <S.NewChatButton onClick={handleNewChat}>
+                <PlusIcon width={20} height={20} />
+                Novo Chat
+              </S.NewChatButton>
               <S.HistoryTitle>Chats Anteriores</S.HistoryTitle>
-              {chatHistory.map(chat => (
-                <S.HistoryItem key={chat.id}>
-                  {chat.title}
+              {chatHistory.map((chat) => (
+                <S.HistoryItem
+                  key={chat.id}
+                  $isActive={selectedChatId === chat.id}
+                  onClick={() => handleHistoryClick(chat.id)}
+                >
+                  {/* Trata nomes "undefined" que podem vir da API */}
+                  {chat.title || "Chat Antigo"}
                 </S.HistoryItem>
               ))}
             </S.HistorySidebar>
@@ -176,24 +238,43 @@ export function Relatorios() {
                   <S.WelcomeContainer>
                     <div>
                       <S.WelcomeTitle>Assistente de IA Interno</S.WelcomeTitle>
-                      <S.WelcomeSubtitle>Como posso ajudar a analisar seus dados hoje?</S.WelcomeSubtitle>
+                      <S.WelcomeSubtitle>
+                        {selectedChatId
+                          ? "Histórico de mensagens carregado."
+                          : "Como posso ajudar a analisar seus dados hoje?"}
+                      </S.WelcomeSubtitle>
                     </div>
-                    <S.IcebreakerGrid>
-                      {mockIcebreakers.map((text, i) => (
-                        <S.IcebreakerCard key={i} onClick={() => handleIcebreakerClick(text)}>
-                          {text}
-                        </S.IcebreakerCard>
-                      ))}
-                    </S.IcebreakerGrid>
+                    {!selectedChatId && (
+                      <S.IcebreakerGrid>
+                        {mockIcebreakers.map((text, i) => (
+                          <S.IcebreakerCard
+                            key={i}
+                            onClick={() => handleIcebreakerClick(text)}
+                          >
+                            {text}
+                          </S.IcebreakerCard>
+                        ))}
+                      </S.IcebreakerGrid>
+                    )}
                   </S.WelcomeContainer>
                 ) : (
                   // Tela de Chat Ativo
                   <>
-                    {messages.map(msg => 
-                      msg.sender === 'user' ? (
-                        <S.UserMessage key={msg.id} dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br>') }} />
+                    {messages.map((msg) =>
+                      msg.sender === "user" ? (
+                        <S.UserMessage
+                          key={msg.id}
+                          dangerouslySetInnerHTML={{
+                            __html: msg.text.replace(/\n/g, "<br>"),
+                          }}
+                        />
                       ) : (
-                        <S.AiMessage key={msg.id} dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br>') }} />
+                        <S.AiMessage
+                          key={msg.id}
+                          dangerouslySetInnerHTML={{
+                            __html: msg.text.replace(/\n/g, "<br>"),
+                          }}
+                        />
                       )
                     )}
                     {/* Animação de "pensando" (um passo de cada vez) */}
@@ -206,11 +287,11 @@ export function Relatorios() {
                   </>
                 )}
               </S.MessagesContainer>
-              
+
               {/* Input de Chat */}
               <S.ChatInputForm onSubmit={handleSendMessage}>
                 <S.InputWrapper>
-                  <S.ChatInput 
+                  <S.ChatInput
                     type="text"
                     placeholder="Pergunte algo para a IA..."
                     value={currentInput}
