@@ -406,7 +406,7 @@ export function LeadsInstagram() {
       const { messages: newMessages } = await getInstagramMessages(selectedChat.id, nextPage);
 
       const uniqueNewMessages = newMessages.filter(
-        nm => !selectedChat.messages.some(em => em.id === nm.id)
+        (nm: Message) => !selectedChat.messages.some(em => em.id === nm.id) // Adicionado tipo : Message
       );
 
       const updatedChat: LeadInstagramType = {

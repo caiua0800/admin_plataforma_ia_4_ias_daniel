@@ -1,5 +1,5 @@
 // src/pages/Login/Login.tsx
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import * as S from "./Login.styles";

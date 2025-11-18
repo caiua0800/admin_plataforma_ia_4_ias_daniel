@@ -16,8 +16,8 @@ import * as S from "./Dashboard.styles";
 // import { InstagramIcon } from "../LeadsInstagram/InstagramIcon"; 
 import { 
   getDashboardStats, 
-  DashboardStats, 
-  WeeklyPerformanceItem 
+  type DashboardStats, 
+  type WeeklyPerformanceItem 
 } from "../../servers/dashboardApi";
 
 // Helper para formatar a data "2025-11-09" para "Dom"

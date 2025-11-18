@@ -23,7 +23,7 @@ export const mockedLeadsInstagram: LeadInstagram[] = [
     status: 1,
     lastMessageText: "Quanto custa o plano pro?", // CORRIGIDO (era Test)
     dateCreated: new Date("2025-11-06T10:00:00Z"),
-    last_message_date: "2025-11-06T10:00:00Z", // Adicionado para compatibilidade com a interface
+    last_message_date: "2025-11-06T10:04:00Z", // ADICIONADO (Campo obrigatório)
     messages: [
       {
         id: "insta-msg-1",
@@ -73,7 +73,7 @@ export const mockedLeadsInstagram: LeadInstagram[] = [
     status: 1,
     lastMessageText: "Gostaria de falar com um humano", // CORRIGIDO
     dateCreated: new Date("2025-11-06T09:15:00Z"),
-    last_message_date: "2025-11-06T09:15:00Z",
+    last_message_date: "2025-11-06T09:15:30Z", // ADICIONADO
     messages: [
       {
         id: "insta-msg-6",
@@ -108,7 +108,7 @@ export const mockedLeadsInstagram: LeadInstagram[] = [
     status: 1,
     lastMessageText: "Integra com a API do Bling?", // CORRIGIDO
     dateCreated: new Date("2025-11-05T14:30:00Z"),
-    last_message_date: "2025-11-05T14:30:00Z",
+    last_message_date: "2025-11-05T14:30:30Z", // ADICIONADO
     messages: [
       {
         id: "insta-msg-9",
@@ -136,7 +136,7 @@ export const mockedLeadsInstagram: LeadInstagram[] = [
     status: 1,
     lastMessageText: "Olá! Adorei o projeto.", // CORRIGIDO
     dateCreated: new Date("2025-11-04T18:00:00Z"),
-    last_message_date: "2025-11-04T18:00:00Z",
+    last_message_date: "2025-11-04T18:00:00Z", // ADICIONADO
     messages: [
       {
         id: "insta-msg-11",

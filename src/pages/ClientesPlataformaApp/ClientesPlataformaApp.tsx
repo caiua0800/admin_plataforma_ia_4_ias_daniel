@@ -5,10 +5,10 @@ import {
   mockedClientsPlataformaApp,
   mockedChamados,
 } from "../../api/mockedData";
-import {
+import type {
   ClientPlataformaApp as ClientType,
   Chamado,
-} from "../../types";
+} from "../../types"; // Adicionado type
 import { ChatLayout } from "../../components/ChatLayout/ChatLayout";
 import { ChatList } from "../../components/ChatList/ChatList";
 import { ChatWindow } from "../../components/ChatWindow/ChatWindow";

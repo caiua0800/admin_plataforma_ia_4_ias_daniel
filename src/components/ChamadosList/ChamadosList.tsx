@@ -1,13 +1,12 @@
-// src/components/ChamadosList/ChamadosList.tsx
-import { Chamado } from "../../types";
+import type { Chamado } from "../../types";
 import * as S from "./ChamadosList.styles";
-
+// ... resto do arquivo igual ...
 interface ChamadosListProps {
   chamados: Chamado[];
   onChamadoClick: (chamado: Chamado) => void;
 }
-
 export function ChamadosList({ chamados, onChamadoClick }: ChamadosListProps) {
+    // ... (copie o resto do código original ou mantenha se não mudou a lógica)
   return (
     <S.Container>
       <S.Header>

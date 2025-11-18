@@ -1,5 +1,5 @@
 // src/pages/Relatorios/Relatorios.tsx
-import { FormEvent, useState, useRef, useEffect } from "react";
+import { type FormEvent, useState, useRef, useEffect } from "react";
 import {
   PaperAirplaneIcon,
   CogIcon,

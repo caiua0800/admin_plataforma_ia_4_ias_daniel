@@ -10,7 +10,7 @@ import {
   useLayoutEffect 
 } from "react";
 import * as S from "./ChatWindow.styles";
-import type { LeadInstagram as LeadInstagramType, Message } from "../../types";
+import type { LeadInstagram as LeadInstagramType } from "../../types";
 
 interface ChatWindowProps {
   chat: LeadInstagramType | null;

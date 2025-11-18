@@ -1,8 +1,8 @@
 // src/pages/LeadsWebsite/LeadsWebsite.tsx
 import { useState, useMemo } from "react";
 import styled from "styled-components";
-import { mockedLeadsWebsite } from "../../api/mockedData"; // 1. Mudar para mockedLeadsWebsite
-import { LeadWebsite as LeadWebsiteType } from "../../types"; // 2. Mudar para LeadWebsiteType
+import { mockedLeadsWebsite } from "../../api/mockedData";
+import type { LeadWebsite as LeadWebsiteType } from "../../types"; // Adicionado type
 import { ChatLayout } from "../../components/ChatLayout/ChatLayout";
 // Importa os componentes base para podermos sobrepor seus estilos
 import { ChatList as BaseChatList } from "../../components/ChatList/ChatList";

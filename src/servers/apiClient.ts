@@ -1,5 +1,5 @@
 // src/servers/apiClient.ts
-import { refreshAccessToken, logout } from './authApi';
+import { refreshAccessToken } from './authApi'; // Removed unused logout
 
 // A URL base da sua API
 const BASE_URL = import.meta.env.VITE_BASE_ROUTE;

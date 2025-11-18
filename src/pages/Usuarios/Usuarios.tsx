@@ -1,6 +1,6 @@
 // src/pages/Usuarios/Usuarios.tsx
-import { FormEvent, useState, useEffect } from "react"; // 1. Importar useEffect
-import { useAdmin, NewAdminData } from "../../contexts/AdminContext";
+import { type FormEvent, useState, useEffect } from "react"; // type
+import { useAdmin } from "../../contexts/AdminContext";
 import { 
   UserPlusIcon, 
   PencilIcon, 
@@ -9,7 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { Modal } from "../../components/Modal/Modal";
 import * as S from "./Usuarios.styles";
-import { User } from "../../types";
+import type { User } from "../../types";
 
 const LoadingSpinner = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#fff' }}>

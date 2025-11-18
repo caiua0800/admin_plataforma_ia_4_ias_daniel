@@ -5,7 +5,12 @@ import type {
   Message,
   InstagramStats,
 } from "../types";
-import { MessagesResponse } from "./instagramTypes"; 
+
+// Definindo a interface localmente para evitar erro de módulo faltando
+export interface MessagesResponse {
+  messages: Message[];
+  lastClientMessageDate?: Date;
+}
 
 const getValidString = (value: any): string | undefined => {
   if (typeof value === 'string' && value !== "undefined" && value !== "false") {
@@ -14,9 +19,6 @@ const getValidString = (value: any): string | undefined => {
   return undefined;
 };
 
-/**
- * Busca os chats do Instagram.
- */
 export const getInstagramChats = async (page = 1): Promise<LeadInstagram[]> => {
   try {
     const data = await apiFetch(`api/chats?tipo=instagram&page=${page}`, {
@@ -36,8 +38,6 @@ export const getInstagramChats = async (page = 1): Promise<LeadInstagram[]> => {
       messages: [], 
       currentPage: 0,
       hasMoreMessages: true,
-      
-      // --- MUDANÇA AQUI: Mapeando o campo is_blocked ---
       is_blocked: item.json.is_blocked, 
     }));
 
@@ -49,7 +49,6 @@ export const getInstagramChats = async (page = 1): Promise<LeadInstagram[]> => {
   }
 };
 
-// ... (o restante do arquivo getInstagramStats, getInstagramMessages, sendInstagramMessage, toggleChatBlock permanece igual) ...
 export const getInstagramStats = async (): Promise<InstagramStats> => {
   try {
     const data = await apiFetch(`api/stats?tipo=instagram`, {

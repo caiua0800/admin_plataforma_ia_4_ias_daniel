@@ -3,11 +3,11 @@ import {
   createContext, 
   useState, 
   useContext, 
-  ReactNode,
+  type ReactNode, // type
   useCallback
 } from "react";
-import { User } from "../types";
-import { registerUser, RegisterResult } from "../servers/authApi";
+import type { User } from "../types"; // type
+import { registerUser, type RegisterResult } from "../servers/authApi";
 import apiFetch from "../servers/apiClient";
 import { editUser, deleteUser, changeUserPassword } from "../servers/userApi";
 

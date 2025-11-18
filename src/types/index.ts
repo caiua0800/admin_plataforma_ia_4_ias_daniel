@@ -1,4 +1,5 @@
 // src/types/index.ts
+
 export interface Message {
   id: string;
   message: string;
@@ -6,54 +7,49 @@ export interface Message {
   isReply: boolean;
   senderName?: string;
 }
-export interface LeadInstagram {
+
+// Base comum para facilitar a compatibilidade
+export interface BaseChat {
   id: string;
   name?: string;
-  username: string; 
-  avatarUrl?: string; 
+  username?: string; // Opcional em todos
+  avatarUrl?: string;
   status?: number;
-  lastMessageText: string; 
-  last_message_date: Date | string;
+  lastMessageText: string; // Corrigido de Test para Text se necessário, mantendo consistência
+  last_message_date?: Date | string; // Opcional/Compatibilidade
   dateCreated: Date;
   messages: Message[];
   
   followers_count?: number;
   follows_me?: boolean;
-  hasUnread?: boolean; 
-  lastClientMessageDate?: Date; 
-
-  currentPage?: number;     
-  hasMoreMessages?: boolean; 
+  hasUnread?: boolean;
+  lastClientMessageDate?: Date;
   
-  // --- CAMPO ADICIONADO ---
-  is_blocked?: boolean; // Indica se a IA está pausada para este chat
+  currentPage?: number;
+  hasMoreMessages?: boolean;
+  is_blocked?: boolean;
 }
-// ... (o restante do arquivo permanece igual)
-export interface LeadWebsite {
-  id: string;
-  name?: string;
-  status?: number;
-  lastMessageText: string;
-  dateCreated: Date;
+
+export interface LeadInstagram extends BaseChat {
+  // Propriedades específicas do Instagram já estão no BaseChat como opcionais
+}
+
+export interface LeadWebsite extends BaseChat {
   city?: string;
   ipAddress?: string;
-  messages: Message[];
 }
-export interface ClientPlataformaApp {
-  id: string;
-  name: string;
+
+export interface ClientPlataformaApp extends BaseChat {
   email: string;
   cpf: string;
-  status?: number;
-  lastMessageText: string;
-  dateCreated: Date;
-  messages: Message[];
 }
+
 export interface User {
   id: string;
   name: string;
   email: string;
 }
+
 export interface Chamado {
   id: string;
   leadId: string;
