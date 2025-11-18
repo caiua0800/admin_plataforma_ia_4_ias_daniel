@@ -8,7 +8,7 @@ import {
 import type {
   ClientPlataformaApp as ClientType,
   Chamado,
-} from "../../types"; // Adicionado type
+} from "../../types";
 import { ChatLayout } from "../../components/ChatLayout/ChatLayout";
 import { ChatList } from "../../components/ChatList/ChatList";
 import { ChatWindow } from "../../components/ChatWindow/ChatWindow";
@@ -16,12 +16,11 @@ import { ChamadosList } from "../../components/ChamadosList/ChamadosList";
 import {
   MagnifyingGlassIcon,
   CalendarDaysIcon,
-  UsersIcon, // MUDANÇA: Ícone de Usuários (Clientes)
+  UsersIcon, 
 } from "@heroicons/react/24/outline";
 
 // --- ESTILOS ---
 
-// Cabeçalho compacto (cards, título)
 const CompactHeaderContainer = styled.div`
   padding: 24px 16px 16px 16px;
   display: flex;
@@ -36,11 +35,10 @@ const TitleRow = styled.div`
   gap: 12px;
 `;
 
-// Ícone da Página (com gradiente e brilho da sidebar)
-const StyledPageIcon = styled(UsersIcon)` // MUDANÇA: Ícone de Usuários (Clientes)
+const StyledPageIcon = styled(UsersIcon)`
   width: 40px;
   height: 40px;
-  color: #06b6d4; /* Cor azul da sidebar */
+  color: #06b6d4; 
   filter: drop-shadow(0 0 10px #06b6d4);
 `;
 
@@ -51,7 +49,6 @@ const SectionTitle = styled.h2`
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
 `;
 
-// ... (O resto dos styled-components permanece o mesmo)
 const StatsRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -85,7 +82,6 @@ const MetricValue = styled.p`
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
 `;
 
-// Filtros (pesquisa + botão de data)
 const FilterHeaderWrapper = styled.div`
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -167,8 +163,9 @@ export function ClientesPlataformaApp() {
   const filteredClients = useMemo(() => {
     return mockedClientsPlataformaApp.filter((client) => {
       const searchLower = searchTerm.toLowerCase();
+      // CORREÇÃO 1: Garantir que client.name não seja undefined
       return (
-        client.name.toLowerCase().includes(searchLower) ||
+        (client.name || "").toLowerCase().includes(searchLower) ||
         client.cpf.includes(searchLower)
       );
     });
@@ -181,11 +178,9 @@ export function ClientesPlataformaApp() {
     );
   }, []);
 
-  // Métricas
   const totalClients = mockedClientsPlataformaApp.length;
   const totalChamados = clientChamados.length;
 
-  // Lógica para clicar no chamado e abrir o chat
   const handleChamadoClick = (chamado: Chamado) => {
     const chatCorrespondente = mockedClientsPlataformaApp.find(
       (client) => client.id === chamado.leadId
@@ -195,13 +190,12 @@ export function ClientesPlataformaApp() {
     }
   };
 
-  // O componente de cabeçalho da lista
   const listHeader = (
     <>
       <CompactHeaderContainer>
         <TitleRow>
           <StyledPageIcon />
-          <SectionTitle>Clientes da Plataforma</SectionTitle> {/* MUDANÇA: Título */}
+          <SectionTitle>Clientes da Plataforma</SectionTitle>
         </TitleRow>
         <StatsRow>
           <MiniCard>
@@ -240,7 +234,15 @@ export function ClientesPlataformaApp() {
         onSelectChat={(chat) => setSelectedChat(chat)}
         headerComponent={listHeader}
       />
-      <ChatWindow chat={selectedChat} showInput={true} />
+      {/* CORREÇÃO 2: Adicionadas todas as props obrigatórias */}
+      <ChatWindow 
+        chat={selectedChat} 
+        showInput={true}
+        onSendMessage={(msg) => console.log("Enviar mensagem:", msg)}
+        onLoadMore={() => console.log("Carregar mais")}
+        isLoadingMore={false}
+        hasMoreMessages={false}
+      />
       <ChamadosList
         chamados={clientChamados}
         onChamadoClick={handleChamadoClick}

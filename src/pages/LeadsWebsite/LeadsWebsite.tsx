@@ -2,29 +2,26 @@
 import { useState, useMemo } from "react";
 import styled from "styled-components";
 import { mockedLeadsWebsite } from "../../api/mockedData";
-import type { LeadWebsite as LeadWebsiteType } from "../../types"; // Adicionado type
+import type { LeadWebsite as LeadWebsiteType } from "../../types"; 
 import { ChatLayout } from "../../components/ChatLayout/ChatLayout";
-// Importa os componentes base para podermos sobrepor seus estilos
 import { ChatList as BaseChatList } from "../../components/ChatList/ChatList";
 import { ChatWindow as BaseChatWindow } from "../../components/ChatWindow/ChatWindow";
 import {
   MagnifyingGlassIcon,
   CalendarDaysIcon,
-  GlobeAltIcon, // 3. Novo ícone
+  GlobeAltIcon, 
 } from "@heroicons/react/24/outline";
 
 // --- ESTILOS ---
 
-// 4. Sobrepõe os estilos base para forçar um layout 40/60
 const ChatList = styled(BaseChatList)`
-  flex: 0 0 40%; /* 40% para a lista */
+  flex: 0 0 40%;
 `;
 
 const ChatWindow = styled(BaseChatWindow)`
-  flex: 1; /* Ocupa o resto (60%) */
+  flex: 1; 
 `;
 
-// Cabeçalho compacto (cards, título)
 const CompactHeaderContainer = styled.div`
   padding: 24px 16px 16px 16px;
   display: flex;
@@ -39,11 +36,10 @@ const TitleRow = styled.div`
   gap: 12px;
 `;
 
-// Ícone da Página (com gradiente e brilho da sidebar)
 const StyledPageIcon = styled(GlobeAltIcon)`
   width: 40px;
   height: 40px;
-  color: #06b6d4; /* Cor azul da sidebar */
+  color: #06b6d4; 
   filter: drop-shadow(0 0 10px #06b6d4);
 `;
 
@@ -87,7 +83,6 @@ const MetricValue = styled.p`
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
 `;
 
-// Filtros (pesquisa + botão de data)
 const FilterHeaderWrapper = styled.div`
   padding: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -167,7 +162,6 @@ export function LeadsWebsite() {
   );
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filtra leads do website por nome
   const filteredChats = useMemo(() => {
     return mockedLeadsWebsite.filter((chat) => {
       const searchLower = searchTerm.toLowerCase();
@@ -175,14 +169,12 @@ export function LeadsWebsite() {
     });
   }, [searchTerm]);
 
-  // Métricas
   const totalLeads = mockedLeadsWebsite.length;
   const today = new Date().toISOString().slice(0, 10);
   const leadsToday = mockedLeadsWebsite.filter((chat) =>
     chat.dateCreated.toISOString().startsWith(today)
   ).length;
 
-  // O componente de cabeçalho da lista
   const listHeader = (
     <>
       <CompactHeaderContainer>
@@ -227,7 +219,15 @@ export function LeadsWebsite() {
         onSelectChat={(chat) => setSelectedChat(chat)}
         headerComponent={listHeader}
       />
-      <ChatWindow chat={selectedChat} showInput={false} />
+      {/* CORREÇÃO: Adicionadas todas as props obrigatórias */}
+      <ChatWindow 
+        chat={selectedChat} 
+        showInput={false} 
+        onSendMessage={() => {}}
+        onLoadMore={() => {}}
+        isLoadingMore={false}
+        hasMoreMessages={false}
+      />
     </ChatLayout>
   );
 }
