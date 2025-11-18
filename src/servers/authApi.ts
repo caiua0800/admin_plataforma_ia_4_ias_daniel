@@ -1,32 +1,28 @@
 // src/servers/authApi.ts
 
-const BASE_URL = import.meta.env.VITE_BASE_ROUTE;
-const API_KEY = "minha_chave_de_api"; 
+// --- ALTERAÇÃO: Não precisamos mais do API_KEY aqui ---
+export const BASE_URL = import.meta.env.VITE_BASE_ROUTE;
+export const API_KEY = "minha_chave_de_api"; // Mantido caso outras funções precisem
 
 /**
  * Gera o cabeçalho de autorização Basic Auth (X-API-KEY)
  */
-const getStaticAuthHeader = () => {
+export const getStaticAuthHeader = () => {
   const credentials = btoa(`X-API-KEY:${API_KEY}`);
   return `Basic ${credentials}`;
 };
 
-/**
- * Função centralizada para deslogar o usuário.
- */
 export const logout = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   window.dispatchEvent(new Event('auth-change')); 
 };
 
-/**
- * Tenta autenticar o usuário na API.
- */
 export const loginUser = async (email: string, password: string) => {
   const response = await fetch(`${BASE_URL}api/users/login`, {
     method: "POST",
     headers: {
+      // Login ainda usa a Chave de API estática
       "Authorization": getStaticAuthHeader(), 
       "Content-Type": "application/json",
       "ngrok-skip-browser-warning": "true",
@@ -63,10 +59,6 @@ export const loginUser = async (email: string, password: string) => {
   return data;
 };
 
-/**
- * Chama a API para renovar o Access Token.
- * --- CORREÇÃO APLICADA AQUI ---
- */
 export const refreshAccessToken = async () => {
   const refreshToken = localStorage.getItem('refreshToken');
   if (!refreshToken) {
@@ -83,30 +75,25 @@ export const refreshAccessToken = async () => {
     body: JSON.stringify({ refreshToken }),
   });
 
-  // 1. VERIFICA SE A RESPOSTA FOI BEM SUCEDIDA (ex: 200 OK) *ANTES* DE LER O JSON
   if (!response.ok) {
     console.error("Refresh token inválido ou expirado. Deslogando.");
     logout(); 
     
-    // Tenta ler o erro do corpo da resposta
     const errorData = await response.json().catch(() => ({})); 
     throw new Error(errorData.error || "Sessão expirada");
   }
 
-  // 2. AGORA que sabemos que está OK, tentamos ler o JSON
   let data;
   try {
      data = await response.json();
   } catch (error) {
-    // Se cair aqui, é o erro 'SyntaxError: Unexpected end of JSON input'
-    console.error("Erro ao parsear JSON do refresh-token (resposta provavelmente vazia):", error);
-    logout(); // Desloga o usuário pois a API está inconsistente
+    console.error("Erro ao parsear JSON do refresh-token:", error);
+    logout(); 
     throw new Error("Resposta de autenticação inválida.");
   }
   
-  // 3. Verifica se o JSON (que agora sabemos ser válido) tem os tokens
   if (!data.accessToken || !data.refreshToken) {
-    logout(); // Limpa tokens se a resposta for inválida
+    logout(); 
     throw new Error("Resposta de refresh token inválida");
   }
 
@@ -116,24 +103,30 @@ export const refreshAccessToken = async () => {
   return data.accessToken; 
 };
 
-
-// --- Funções de Usuário (Registro) ---
 export interface RegisterResult {
   success: boolean;
   message?: string;
   data?: any;
 }
 
+/**
+ * Cadastra um novo usuário.
+ * --- AGORA USA TOKEN JWT (Bearer Auth) ---
+ */
 export const registerUser = async (
   name: string,
   email: string,
   password: string
 ): Promise<RegisterResult> => {
   
+  // Pega o token do admin logado (JWT)
+  const accessToken = localStorage.getItem('accessToken'); 
+  
   const response = await fetch(`${BASE_URL}api/users/register`, {
     method: "POST",
     headers: {
-      "Authorization": getStaticAuthHeader(),
+      // --- MUDANÇA: USANDO BEARER TOKEN ---
+      "Authorization": `Bearer ${accessToken}`, 
       "Content-Type": "application/json",
       "ngrok-skip-browser-warning": "true",
     },

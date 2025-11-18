@@ -29,14 +29,14 @@ import { useSocketStore } from "../../stores/socketStore";
 import { useChatActivityStore } from "../../stores/useChatActivityStore";
 
 
-// --- ESTILOS ---
+// --- ESTILOS (omitidos para brevidade) ---
 
 const ChatList = styled(BaseChatList)`
-  flex: 0 0 40%; /* 40% para a lista */
+  flex: 0 0 40%;
 `;
 
 const ChatWindow = styled(BaseChatWindow)`
-  flex: 1; /* Ocupa o resto (60%) */
+  flex: 1;
 `;
 
 const CompactHeaderContainer = styled.div`
@@ -164,8 +164,6 @@ const DateButton = styled.button`
   }
 `;
 
-// --- FIM DOS ESTILOS ---
-
 
 // Helper
 const getValidString = (value: any): string | undefined => {
@@ -199,7 +197,7 @@ export function LeadsInstagram() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // Para o infinite scroll
+  const [isLoadingMore, setIsLoadingMore] = useState(false); 
 
   const latestEvent = useSocketStore((state) => state.latestEvent);
   const { setActiveChatId } = useChatActivityStore();
@@ -226,10 +224,24 @@ export function LeadsInstagram() {
     fetchChats();
   }, [fetchChats]);
 
-  // Informa ao store qual chat está ativo
+  // Sincroniza o chat selecionado (mantém mensagens e paginação)
   useEffect(() => {
+    if (selectedChat) {
+      const updatedChat = allChats.find(c => c.id === selectedChat.id);
+      if (updatedChat) {
+        // Preserva os dados de paginação e mensagens carregadas
+        setSelectedChat(prevChat => ({
+          ...updatedChat,
+          messages: prevChat?.messages || [], 
+          currentPage: prevChat?.currentPage || 0,
+          hasMoreMessages: prevChat?.hasMoreMessages ?? false,
+        }));
+      }
+    }
+    // Seta o chat ativo para o store de notificação
     setActiveChatId(selectedChat?.id || null);
-  }, [selectedChat, setActiveChatId]);
+  }, [allChats, selectedChat?.id, setActiveChatId]);
+
 
   // Limpa o chat ativo ao sair da página
   useEffect(() => {
@@ -239,7 +251,7 @@ export function LeadsInstagram() {
   }, [setActiveChatId]);
 
 
-  // Efeito que reage ao WebSocket (para atualizar a UI em tempo real)
+  // Lógica do WebSocket (para atualizar a UI em tempo real)
   useEffect(() => {
     if (!latestEvent || latestEvent.platform !== 'instagram') {
       return; 
@@ -253,7 +265,6 @@ export function LeadsInstagram() {
     if (chatIndex === -1) { 
       console.warn("[LeadsInstagram] 2. Mensagem recebida para um chat novo/não carregado. Buscando chats...", chatData.id);
       fetchChats();
-      // Não limpa o evento, deixa o AppLayout decidir sobre a notificação
       return;
     }
     
@@ -272,23 +283,19 @@ export function LeadsInstagram() {
         follows_me: chatData.follows_me,
     };
 
-    // Se o chat está aberto, atualiza as mensagens
     if (selectedChat && selectedChat.id === chatData.id) {
         console.log("[LeadsInstagram] 3. O chat está ABERTO. Atualizando mensagens...");
         updatedChatSummary.hasUnread = false;
         
-        // Busca apenas a página 1 (as mais novas)
         getInstagramMessages(chatData.id, 1).then(({ messages: newMessages, lastClientMessageDate }) => {
             
             const updatedChat = {
                 ...updatedChatSummary,
-                // Combina as mensagens novas com as antigas, sem duplicatas
                 messages: getUniqueMessages([
                   ...selectedChat.messages, 
                   ...newMessages
                 ]),
                 lastClientMessageDate: lastClientMessageDate,
-                // Mantém a paginação existente
                 currentPage: selectedChat.currentPage, 
                 hasMoreMessages: selectedChat.hasMoreMessages,
             };
@@ -299,16 +306,12 @@ export function LeadsInstagram() {
         });
         
     } else {
-        // Se o chat está fechado, apenas marca como não lido
         console.log("[LeadsInstagram] 3. O chat está FECHADO. Marcando como não lido.");
         updatedChatSummary.hasUnread = true;
         setAllChats(prevChats => prevChats.map((chat, i) => 
             i === chatIndex ? updatedChatSummary : chat
         ));
     }
-    
-    // NÃO LIMPA O EVENTO: setLatestEvent(null);
-    // Deixa o AppLayout.tsx ser o único responsável por limpar o evento.
 
   }, [latestEvent, allChats, selectedChat, fetchChats]);
 
@@ -330,6 +333,20 @@ export function LeadsInstagram() {
 
   // Seleção de Chat (Carrega 2 páginas)
   const handleSelectChat = async (chat: LeadInstagramType) => {
+    
+    // --- CORREÇÃO: VERIFICA SE JÁ ESTÁ CARREGADO ---
+    // Se o chat já está selecionado e tem mensagens, apenas garante que está marcado como lido
+    if (selectedChat && selectedChat.id === chat.id && selectedChat.messages.length > 0) {
+        if (chat.hasUnread) {
+             setAllChats(prevChats => 
+                prevChats.map(c => c.id === chat.id ? { ...c, hasUnread: false } : c)
+            );
+        }
+        return; // Sai sem fazer novas requisições
+    }
+    // --- FIM DA CORREÇÃO ---
+
+
     if (chat.hasUnread) {
       const updatedChat = { ...chat, hasUnread: false };
       setAllChats(prevChats => 
@@ -342,6 +359,8 @@ export function LeadsInstagram() {
     
     try {
       console.log(`[handleSelectChat] Buscando páginas 1 e 2 para ${chat.id}`);
+      
+      // 1. As requisições são agrupadas em Promise.all
       const [page1Data, page2Data] = await Promise.all([
         getInstagramMessages(chat.id, 1),
         getInstagramMessages(chat.id, 2)
@@ -352,13 +371,15 @@ export function LeadsInstagram() {
         ...page1Data.messages
       ]);
       
+      const freshChatData = allChats.find(c => c.id === chat.id) || chat;
+      
       const chatWithMessages: LeadInstagramType = { 
-        ...chat, 
+        ...freshChatData,
         messages: mergedMessages, 
         lastClientMessageDate: page1Data.lastClientMessageDate,
         hasUnread: false,
-        currentPage: 2, // Já carregamos até a página 2
-        hasMoreMessages: page2Data.messages.length > 0, // Se a página 2 tinha msgs, deve haver mais
+        currentPage: 2, 
+        hasMoreMessages: page2Data.messages.length > 0,
       };
       
       setAllChats(prevChats => 
@@ -382,10 +403,8 @@ export function LeadsInstagram() {
     console.log(`[handleLoadMore] Buscando página ${nextPage} para ${selectedChat.id}`);
     
     try {
-      // A API agora retorna { messages: [] } se não houver mais
       const { messages: newMessages } = await getInstagramMessages(selectedChat.id, nextPage);
 
-      // Filtra mensagens que já podem existir no estado (previne duplicatas)
       const uniqueNewMessages = newMessages.filter(
         nm => !selectedChat.messages.some(em => em.id === nm.id)
       );
@@ -397,7 +416,7 @@ export function LeadsInstagram() {
           ...selectedChat.messages
         ]),
         currentPage: nextPage,
-        hasMoreMessages: newMessages.length > 0, // Se não veio msgs, não há mais
+        hasMoreMessages: newMessages.length > 0, 
       };
 
       setSelectedChat(updatedChat);
@@ -405,7 +424,7 @@ export function LeadsInstagram() {
 
     } catch (error) {
       console.error("Erro ao carregar mais mensagens:", error);
-      // Se um erro ocorrer, para de tentar carregar mais
+      
       const errorChat = {
         ...selectedChat,
         hasMoreMessages: false,
@@ -446,11 +465,18 @@ export function LeadsInstagram() {
   // Pausar/Reativar IA
   const handlePauseToggle = async (chatId: string) => {
     console.log(`[LeadsInstagram] Tentando pausar/reativar IA para o chat: ${chatId}`);
-    await toggleChatBlock(chatId); 
-    console.log(`[LeadsInstagram] Ação de pause/reativar IA enviada para: ${chatId}`);
+    try {
+        await toggleChatBlock(chatId); 
+        console.log(`[LeadsInstagram] Ação de pause/reativar IA enviada para: ${chatId}. Forçando atualização de status.`);
+        
+        await fetchChats(); 
+        
+    } catch (error) {
+        console.error(`[LeadsInstagram] Falha ao alternar bloqueio para ${chatId}:`, error);
+    }
   };
 
-  // Cabeçalho da Lista
+  // listHeader (sem alteração)
   const listHeader = (
     <>
       <CompactHeaderContainer>
@@ -505,7 +531,6 @@ export function LeadsInstagram() {
         onSendMessage={handleSendMessage}
         onPauseToggle={handlePauseToggle}
         
-        // Props para o Infinite Scroll
         onLoadMore={handleLoadMore}
         isLoadingMore={isLoadingMore}
         hasMoreMessages={selectedChat?.hasMoreMessages ?? false}

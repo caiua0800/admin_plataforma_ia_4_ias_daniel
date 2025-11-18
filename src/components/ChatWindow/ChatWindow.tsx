@@ -1,13 +1,13 @@
 // src/components/ChatWindow/ChatWindow.tsx
 import { 
   PaperAirplaneIcon, 
-  ArrowPathIcon // 1. Importar ícone do spinner
+  ArrowPathIcon 
 } from "@heroicons/react/24/solid";
 import { 
   useState, 
   useEffect, 
-  useRef, // 2. Importar refs
-  useLayoutEffect // 3. Importar useLayoutEffect
+  useRef, 
+  useLayoutEffect 
 } from "react";
 import * as S from "./ChatWindow.styles";
 import type { LeadInstagram as LeadInstagramType, Message } from "../../types";
@@ -16,9 +16,9 @@ interface ChatWindowProps {
   chat: LeadInstagramType | null;
   className?: string;
   onSendMessage: (message: string) => void;
-  onPauseToggle?: (chatId: string) => Promise<any>;
-  
-  // --- NOVAS PROPS ADICIONADAS ---
+  // Prop para API de pause/unpause (que é passada pelo LeadsInstagram)
+  onPauseToggle?: (chatId: string) => Promise<any>; 
+  // Props para Infinite Scroll
   onLoadMore: () => void;
   isLoadingMore: boolean;
   hasMoreMessages: boolean;
@@ -34,17 +34,31 @@ export function ChatWindow({
   hasMoreMessages
 }: ChatWindowProps) {
   
-  const [isAiPaused, setIsAiPaused] = useState(false);
+  // isAiPaused será sincronizado com chat.is_blocked
+  const [isAiPaused, setIsAiPaused] = useState(false); 
   const [newMessage, setNewMessage] = useState("");
   const [isBlocked, setIsBlocked] = useState(false);
   const [placeholderText, setPlaceholderText] = useState("A IA está respondendo");
-  const [isTogglingPause, setIsTogglingPause] = useState(false);
+  const [isTogglingPause, setIsTogglingPause] = useState(false); // Loading do botão
 
-  // --- REFS PARA O SCROLL ---
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const [prevScrollHeight, setPrevScrollHeight] = useState<number | null>(null);
 
-  // Lógica de bloqueio 24h (sem alteração)
+  // --- CORREÇÃO DO BUG: SINCRONIZAÇÃO COM A API ---
+  useEffect(() => {
+    if (chat) {
+      // Se chat.is_blocked for true, a IA está pausada.
+      // O !! converte o valor (true/false) para boolean
+      setIsAiPaused(!!chat.is_blocked);
+    } else {
+      setIsAiPaused(false);
+    }
+    setIsTogglingPause(false);
+  }, [chat?.id, chat?.is_blocked]); // Roda toda vez que o ID ou o estado de bloqueio da API muda
+  // --- FIM DA CORREÇÃO ---
+
+
+  // Lógica de bloqueio 24h e Placeholder (sem alteração)
   useEffect(() => {
     if (!chat) return;
     const lastClientMessageDate = chat.lastClientMessageDate;
@@ -64,47 +78,31 @@ export function ChatWindow({
       setPlaceholderText("A IA está respondendo");
     }
   }, [chat, isAiPaused, chat?.lastClientMessageDate]);
-
-  // Reseta pause (sem alteração)
-  useEffect(() => {
-    setIsAiPaused(false);
-    setIsTogglingPause(false);
-  }, [chat?.id]);
-
-  // --- LÓGICA DE SCROLL ---
-
-  // 1. Rola para o final quando o chat é aberto pela primeira vez
+  
+  // Lógica de Scroll (necessária para Infinite Scroll)
   useLayoutEffect(() => {
     if (messagesAreaRef.current) {
       messagesAreaRef.current.scrollTop = messagesAreaRef.current.scrollHeight;
     }
-  }, [chat?.id]); // Depende apenas do ID do chat
+  }, [chat?.id]);
 
-  // 2. Preserva a posição do scroll ao carregar mais mensagens
   useLayoutEffect(() => {
     if (prevScrollHeight !== null && messagesAreaRef.current && isLoadingMore === false) {
       const newScrollHeight = messagesAreaRef.current.scrollHeight;
       messagesAreaRef.current.scrollTop = newScrollHeight - prevScrollHeight;
-      setPrevScrollHeight(null); // Reseta
+      setPrevScrollHeight(null); 
     }
-  }, [chat?.messages.length, prevScrollHeight, isLoadingMore]); // Roda quando as mensagens mudam
+  }, [chat?.messages.length, prevScrollHeight, isLoadingMore]);
 
-  // 3. Handler de scroll para carregar mais
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop } = e.currentTarget;
-    
-    // Se o scroll chegar ao topo, e não estiver carregando, e houver mais mensagens
     if (scrollTop === 0 && !isLoadingMore && hasMoreMessages) {
-      console.log("ChatWindow: Scroll no topo, carregando mais...");
-      // Salva a altura atual ANTES de buscar novas
       if (messagesAreaRef.current) {
         setPrevScrollHeight(messagesAreaRef.current.scrollHeight);
       }
-      onLoadMore(); // Chama a função do pai
+      onLoadMore(); 
     }
   };
-  // --- FIM DA LÓGICA DE SCROLL ---
-
 
   if (!chat) {
     return (
@@ -128,7 +126,7 @@ export function ChatWindow({
     }
   };
   
-  // Lógica do botão de pause (sem alteração)
+  // Lógica do botão de pause
   const handlePauseClick = async () => {
     if (!chat || isTogglingPause) return; 
 
@@ -136,14 +134,17 @@ export function ChatWindow({
       setIsTogglingPause(true);
       try {
         await onPauseToggle(chat.id);
-        setIsAiPaused(!isAiPaused);
+        // O estado isAiPaused será atualizado pelo useEffect quando o chat.is_blocked mudar
+        // Não fazemos o toggle local aqui.
       } catch (error) {
         console.error("Falha ao tentar pausar a IA:", error);
         alert("Erro ao tentar pausar a IA. Tente novamente.");
+        // Se a API falhar, o isAiPaused manterá o valor anterior (o correto)
       } finally {
         setIsTogglingPause(false);
       }
     } else {
+      // Fallback para páginas sem API (mantém o toggle local)
       setIsAiPaused(!isAiPaused);
     }
   };
@@ -151,12 +152,11 @@ export function ChatWindow({
   const isInputDisabled = isBlocked || !isAiPaused;
   const getPauseButtonText = () => {
     if (isTogglingPause) return "Aguarde...";
-    if (!onPauseToggle || !isAiPaused) {
-      return "Pausar IA";
-    }
-    return "Reativar IA";
+    // O texto agora depende do estado sincronizado
+    return isAiPaused ? "Reativar IA" : "Pausar IA";
   };
-  const isButtonPaused = onPauseToggle ? isAiPaused : false;
+  // A cor é determinada pelo estado sincronizado
+  const isButtonPaused = isAiPaused;
 
   return (
     <S.Container className={className}>
@@ -171,10 +171,7 @@ export function ChatWindow({
         </S.PauseButton>
       </S.Header>
       
-      {/* 4. Adiciona a 'ref' e o 'onScroll' handler */}
       <S.MessagesArea ref={messagesAreaRef} onScroll={handleScroll}>
-      
-        {/* 5. Renderiza o spinner no topo se estiver carregando */}
         {isLoadingMore && (
           <S.SpinnerContainer>
             <ArrowPathIcon />

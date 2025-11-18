@@ -8,14 +8,16 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/solid";
 import * as S from "./Relatorios.styles";
-// 1. Importar as funções ATUALIZADAS e os novos TIPOS
 import {
   askInternalApi,
   getInternalChats,
-  getInternalChatMessages, // <- NOVO
+  getInternalChatMessages,
   type InternalChat,
-  type InternalMessageTurn, // <- NOVO
+  type InternalMessageTurn,
 } from "../../servers/internalApi";
+
+// --- NOVO: Importar o componente de Markdown ---
+import { MessageContent } from "../../components/Markdown/MessageContent";
 
 // --- Tipos de Dados ---
 interface Message {
@@ -55,7 +57,7 @@ export function Relatorios() {
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // useEffect para buscar o histórico de chats na API (sem alteração)
+  // useEffect para buscar o histórico de chats na API
   useEffect(() => {
     const fetchHistory = async () => {
       try {
@@ -72,7 +74,7 @@ export function Relatorios() {
     fetchHistory();
   }, []);
 
-  // useEffect para rolar para o final (sem alteração)
+  // useEffect para rolar para o final
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop =
@@ -80,7 +82,7 @@ export function Relatorios() {
     }
   }, [messages, isAiTyping]);
 
-  // useEffect para controlar o ciclo da animação (sem alteração)
+  // useEffect para controlar o ciclo da animação
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isAiTyping) {
@@ -93,24 +95,20 @@ export function Relatorios() {
     return () => clearInterval(interval);
   }, [isAiTyping]);
 
-  // --- 2. ATUALIZADO: Handler para clicar em um item do histórico ---
+  // Handler para clicar em um item do histórico
   const handleHistoryClick = async (chatId: string) => {
     setSelectedChatId(chatId);
-    setMessages([]); // Limpa as mensagens atuais
-    setIsAiTyping(true); // Mostra o "loading"
+    setMessages([]); 
+    setIsAiTyping(true); 
 
     try {
-      // Busca os "turnos" de mensagens da API
       const messageTurns: InternalMessageTurn[] =
         await getInternalChatMessages(chatId);
 
-      // "Achata" (transforma) os turnos no formato que o chat espera
       const flattenedMessages: Message[] = messageTurns.flatMap((turn) => {
-        // Cria uma ID única para o turno (baseada no ID do banco)
         const userMsgId = `turn-${turn.id}-user`;
         const aiMsgId = `turn-${turn.id}-ai`;
 
-        // Retorna um array com as duas mensagens
         return [
           {
             id: userMsgId,
@@ -136,17 +134,17 @@ export function Relatorios() {
         },
       ]);
     } finally {
-      setIsAiTyping(false); // Para o "loading"
+      setIsAiTyping(false);
     }
   };
 
-  // Handler para criar um novo chat (sem alteração)
+  // Handler para criar um novo chat
   const handleNewChat = () => {
     setSelectedChatId(null);
     setMessages([]);
   };
 
-  // Lógica de envio de mensagem (isolada, sem alteração)
+  // Lógica de envio de mensagem
   const submitMessage = async (text: string) => {
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -190,7 +188,7 @@ export function Relatorios() {
     }
   };
 
-  // Handler de envio do formulário (sem alteração)
+  // Handler de envio do formulário
   const handleSendMessage = async (e?: FormEvent) => {
     e?.preventDefault();
     const text = currentInput.trim();
@@ -199,13 +197,12 @@ export function Relatorios() {
     await submitMessage(text);
   };
 
-  // Handler do icebreaker (sem alteração)
+  // Handler do icebreaker
   const handleIcebreakerClick = async (text: string) => {
     await submitMessage(text);
   };
 
   // --- Renderização (JSX) ---
-  // (O JSX abaixo permanece idêntico ao da versão anterior)
   return (
     <S.OuterBorder>
       <S.GlassGap>
@@ -224,7 +221,6 @@ export function Relatorios() {
                   $isActive={selectedChatId === chat.id}
                   onClick={() => handleHistoryClick(chat.id)}
                 >
-                  {/* Trata nomes "undefined" que podem vir da API */}
                   {chat.title || "Chat Antigo"}
                 </S.HistoryItem>
               ))}
@@ -264,20 +260,19 @@ export function Relatorios() {
                       msg.sender === "user" ? (
                         <S.UserMessage
                           key={msg.id}
+                          // Mensagem do usuário (geralmente texto simples, mas pode ter quebras)
                           dangerouslySetInnerHTML={{
                             __html: msg.text.replace(/\n/g, "<br>"),
                           }}
                         />
                       ) : (
-                        <S.AiMessage
-                          key={msg.id}
-                          dangerouslySetInnerHTML={{
-                            __html: msg.text.replace(/\n/g, "<br>"),
-                          }}
-                        />
+                        <S.AiMessage key={msg.id}>
+                          {/* --- MUDANÇA AQUI: Usando o componente Markdown --- */}
+                          <MessageContent content={msg.text} />
+                        </S.AiMessage>
                       )
                     )}
-                    {/* Animação de "pensando" (um passo de cada vez) */}
+                    {/* Animação de "pensando" */}
                     {isAiTyping && (
                       <S.AiTypingIndicator>
                         {typingSteps[typingStep].icon}

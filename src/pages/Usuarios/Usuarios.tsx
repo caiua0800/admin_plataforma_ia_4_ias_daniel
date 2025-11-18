@@ -1,19 +1,22 @@
 // src/pages/Usuarios/Usuarios.tsx
-import { FormEvent, useState } from "react";
-// 1. O tipo importado permanece o mesmo
+import { FormEvent, useState, useEffect } from "react"; // 1. Importar useEffect
 import { useAdmin, NewAdminData } from "../../contexts/AdminContext";
-import { UserPlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/solid";
+import { 
+  UserPlusIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  KeyIcon 
+} from "@heroicons/react/24/solid";
 import { Modal } from "../../components/Modal/Modal";
 import * as S from "./Usuarios.styles";
+import { User } from "../../types";
 
-// Componente simples de Loading
 const LoadingSpinner = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px', color: '#fff' }}>
     Carregando usuários...
   </div>
 );
 
-// Componente simples de Erro
 const ErrorDisplay = ({ message }: { message: string }) => (
   <div style={{ padding: '20px', color: '#f87171', textAlign: 'center' }}>
     {message}
@@ -21,69 +24,138 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 );
 
 export function Usuarios() {
-  // 2. Pegar os novos estados do contexto
-  const { admins, addAdmin, isLoading, error } = useAdmin();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { 
+    admins, 
+    addAdmin, 
+    updateAdmin, 
+    removeAdmin, 
+    changePassword, 
+    refreshAdmins, // 2. Pegar a função de refresh
+    isLoading, 
+    error 
+  } = useAdmin();
+  
+  // 3. Adicionar useEffect para carregar dados ao entrar na página
+  useEffect(() => {
+    refreshAdmins();
+  }, [refreshAdmins]);
 
-  // 2. Estado para o formulário (incluindo senha e erro)
-  const [newName, setNewName] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState(""); // <-- NOVO
-  const [modalError, setModalError] = useState<string | null>(null); // <-- NOVO
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState(""); 
+  const [modalError, setModalError] = useState<string | null>(null);
+
+  const [passEmail, setPassEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   const cleanForm = () => {
-    setNewName("");
-    setNewEmail("");
+    setName("");
+    setEmail("");
+    setPassword("");
+    setModalError(null);
+    setEditingUser(null);
+  };
+
+  const cleanPasswordForm = () => {
+    setPassEmail("");
+    setCurrentPassword("");
     setNewPassword("");
     setModalError(null);
-  }
+  };
 
-  const handleOpenModal = () => {
+  const handleOpenCreateModal = () => {
     cleanForm();
     setIsModalOpen(true);
-  }
+  };
+
+  const handleOpenEditModal = (user: User) => {
+    cleanForm();
+    setEditingUser(user);
+    setName(user.name);
+    setEmail(user.email);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenPasswordModal = (user: User) => {
+    cleanPasswordForm();
+    setPassEmail(user.email);
+    setIsPasswordModalOpen(true);
+  };
   
   const handleCloseModal = () => {
     setIsModalOpen(false);
     cleanForm();
-  }
+  };
 
-  // 3. Esta função permanece a mesma, pois já interage com a API via 'addAdmin'
-  const handleAddUser = async (e: FormEvent) => {
+  const handleClosePasswordModal = () => {
+    setIsPasswordModalOpen(false);
+    cleanPasswordForm();
+  };
+
+  const handleSaveUser = async (e: FormEvent) => {
     e.preventDefault();
-    setModalError(null); // Limpa erros antigos
+    setModalError(null);
 
-    if (newName && newEmail && newPassword) {
-      const adminData: NewAdminData = {
-        name: newName,
-        email: newEmail,
-        password: newPassword,
-      };
+    if (!name || !email) {
+      setModalError("Nome e E-mail são obrigatórios.");
+      return;
+    }
 
-      // 4. Chamar o contexto (que agora chama a API)
-      const result = await addAdmin(adminData);
+    let result;
 
-      // 5. Tratar o resultado
-      if (result.success) {
-        handleCloseModal(); // Sucesso, fecha o modal
-      } else {
-        // Falha, exibe a mensagem da API (ex: "E-mail já em uso")
-        setModalError(result.message || "Erro ao cadastrar usuário.");
-      }
+    if (editingUser) {
+      result = await updateAdmin(editingUser.id, name, email);
     } else {
-      setModalError("Todos os campos são obrigatórios.");
+      if (!password) {
+        setModalError("Senha é obrigatória para novos usuários.");
+        return;
+      }
+      result = await addAdmin({ name, email, password });
+    }
+
+    if (result.success) {
+      handleCloseModal();
+    } else {
+      setModalError(result.message || "Erro ao salvar usuário.");
     }
   };
 
-  // 4. Função para renderizar o conteúdo da tabela
-  const renderContent = () => {
-    if (isLoading) {
-      return <LoadingSpinner />;
+  const handleDeleteUser = async (user: User) => {
+    if (confirm(`Tem certeza que deseja excluir ${user.name}?`)) {
+      const result = await removeAdmin(user.id);
+      if (!result.success) {
+        alert(result.message || "Erro ao excluir usuário.");
+      }
+    }
+  };
+
+  const handleChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+
+    if (!currentPassword || !newPassword) {
+      setModalError("Preencha todos os campos de senha.");
+      return;
     }
 
-    if (error) {
-      return <ErrorDisplay message={error} />;
+    const result = await changePassword(passEmail, currentPassword, newPassword);
+
+    if (result.success) {
+      alert("Senha alterada com sucesso!");
+      handleClosePasswordModal();
+    } else {
+      setModalError(result.message || "Erro ao alterar senha.");
     }
+  };
+
+  const renderContent = () => {
+    if (isLoading) return <LoadingSpinner />;
+    if (error) return <ErrorDisplay message={error} />;
 
     return (
       <S.TableContainer>
@@ -97,7 +169,6 @@ export function Usuarios() {
             </tr>
           </thead>
           <tbody>
-            {/* O .map(admins) agora usa os dados da API */}
             {admins.map((admin) => (
               <tr key={admin.id}>
                 <td>
@@ -115,8 +186,15 @@ export function Usuarios() {
                 </td>
                 <td>
                   <S.ActionButtons>
-                    <button><PencilIcon /></button>
-                    <button><TrashIcon /></button>
+                    <button onClick={() => handleOpenEditModal(admin)} title="Editar">
+                      <PencilIcon />
+                    </button>
+                    <button onClick={() => handleOpenPasswordModal(admin)} title="Trocar Senha">
+                      <KeyIcon />
+                    </button>
+                    <button onClick={() => handleDeleteUser(admin)} title="Excluir" style={{ color: '#f87171' }}>
+                      <TrashIcon />
+                    </button>
                   </S.ActionButtons>
                 </td>
               </tr>
@@ -134,15 +212,12 @@ export function Usuarios() {
           <S.InnerWrapper>
             <S.Header>
               <S.Title>Gerenciamento de Usuários</S.Title>
-              <S.AddButton onClick={handleOpenModal}>
+              <S.AddButton onClick={handleOpenCreateModal}>
                 <UserPlusIcon />
                 Adicionar Usuário
               </S.AddButton>
             </S.Header>
-            
-            {/* 5. Renderizar o conteúdo (Loading, Erro ou Tabela) */}
             {renderContent()}
-
           </S.InnerWrapper>
         </S.GlassGap>
       </S.OuterBorder>
@@ -150,17 +225,16 @@ export function Usuarios() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={handleCloseModal} 
-        title="Cadastrar Novo Usuário"
+        title={editingUser ? "Editar Usuário" : "Cadastrar Novo Usuário"}
       >
-        <S.ModalForm onSubmit={handleAddUser}>
+        <S.ModalForm onSubmit={handleSaveUser}>
           <S.InputGroup>
             <label htmlFor="name">Nome Completo</label>
             <S.Input 
               id="name" 
               type="text" 
-              placeholder="Ex: Pedro Henrique" 
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
             />
           </S.InputGroup>
@@ -169,36 +243,66 @@ export function Usuarios() {
             <S.Input 
               id="email" 
               type="email" 
-              placeholder="Ex: pedro@email.com"
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </S.InputGroup>
-          
-          {/* 6. Adicionar campo de Senha */}
+          {!editingUser && (
+            <S.InputGroup>
+              <label htmlFor="password">Senha Inicial</label>
+              <S.Input 
+                id="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </S.InputGroup>
+          )}
+          {modalError && (
+            <p style={{ color: '#f87171', fontSize: '0.875rem', textAlign: 'center' }}>{modalError}</p>
+          )}
+          <S.ModalButton type="submit">
+            {editingUser ? "Salvar Alterações" : "Cadastrar"}
+          </S.ModalButton>
+        </S.ModalForm>
+      </Modal>
+
+      <Modal 
+        isOpen={isPasswordModalOpen} 
+        onClose={handleClosePasswordModal} 
+        title="Trocar Senha"
+      >
+        <S.ModalForm onSubmit={handleChangePassword}>
           <S.InputGroup>
-            <label htmlFor="password">Senha</label>
+            <label>E-mail</label>
+            <S.Input type="email" value={passEmail} disabled style={{ opacity: 0.7 }} />
+          </S.InputGroup>
+          <S.InputGroup>
+            <label>Senha Atual (do Usuário)</label>
             <S.Input 
-              id="password" 
               type="password" 
-              placeholder="Mínimo 8 caracteres"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+              placeholder="Digite a senha atual"
+            />
+          </S.InputGroup>
+          <S.InputGroup>
+            <label>Nova Senha</label>
+            <S.Input 
+              type="password" 
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
+              placeholder="Digite a nova senha"
             />
           </S.InputGroup>
-          
-          {/* 7. Adicionar exibição de erro no modal */}
           {modalError && (
-            <p style={{ color: '#f87171', fontSize: '0.875rem', textAlign: 'center' }}>
-              {modalError}
-            </p>
+            <p style={{ color: '#f87171', fontSize: '0.875rem', textAlign: 'center' }}>{modalError}</p>
           )}
-
-          <S.ModalButton type="submit">
-            Cadastrar
-          </S.ModalButton>
+          <S.ModalButton type="submit">Atualizar Senha</S.ModalButton>
         </S.ModalForm>
       </Modal>
     </>

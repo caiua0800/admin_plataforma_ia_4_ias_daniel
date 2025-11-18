@@ -3,20 +3,24 @@ import {
   createContext, 
   useState, 
   useContext, 
-  ReactNode, 
-  useEffect // 1. Importar useEffect
+  ReactNode,
+  useCallback
 } from "react";
-// import { mockedUsers } from "../api/mockedData"; // 2. Remover dados mocados
 import { User } from "../types";
 import { registerUser, RegisterResult } from "../servers/authApi";
-import apiFetch from "../servers/apiClient"; // 3. Importar o apiFetch
+import apiFetch from "../servers/apiClient";
+import { editUser, deleteUser, changeUserPassword } from "../servers/userApi";
 
 export type NewAdminData = Omit<User, "id"> & { password: string };
 
-// 4. Atualizar a interface do Contexto
 interface AdminContextType {
   admins: User[];
   addAdmin: (admin: NewAdminData) => Promise<RegisterResult>;
+  updateAdmin: (id: string, name: string, email: string) => Promise<RegisterResult>;
+  removeAdmin: (id: string) => Promise<RegisterResult>;
+  changePassword: (email: string, password: string, newPassword: string) => Promise<RegisterResult>;
+  // --- NOVA FUNÇÃO EXPOSTA ---
+  refreshAdmins: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -24,76 +28,50 @@ interface AdminContextType {
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export const AdminProvider = ({ children }: { children: ReactNode }) => {
-  // 5. Atualizar os estados
   const [admins, setAdmins] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Começa falso, a página vai disparar
   const [error, setError] = useState<string | null>(null);
 
-  // 6. Adicionar o useEffect para buscar os usuários da API
-  useEffect(() => {
-    const fetchAdmins = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Chamar a API de usuários usando o wrapper que já tem o token
-        const response: any[] = await apiFetch('api/users');
-        
-        // Mapear a resposta da API para o formato User[]
-        const loadedUsers: User[] = response.map((item: any) => ({
-          id: item.json.id.toString(), // Converter ID para string
-          name: item.json.name,
-          email: item.json.email,
-        }));
-        
-        setAdmins(loadedUsers);
-      } catch (err: any) {
-        console.error("Erro ao buscar usuários:", err);
-        setError(err.message || "Não foi possível carregar os usuários.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // --- Função de buscar usuários (agora exposta) ---
+  const refreshAdmins = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response: any[] = await apiFetch('api/users');
+      
+      const loadedUsers: User[] = response.map((item: any) => ({
+        id: item.json.id.toString(),
+        name: item.json.name,
+        email: item.json.email,
+      }));
+      
+      setAdmins(loadedUsers);
+    } catch (err: any) {
+      console.error("Erro ao buscar usuários:", err);
+      setError(err.message || "Não foi possível carregar os usuários.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    fetchAdmins();
-  }, []); // O array vazio garante que isso rode apenas uma vez
+  // REMOVIDO: useEffect(() => { fetchAdmins() }, []) 
+  // A chamada automática foi removida para evitar problemas de cache/montagem
 
   const addAdmin = async (adminData: NewAdminData): Promise<RegisterResult> => {
     try {
-      // 1. Chama a API de registro
       const result = await registerUser(
         adminData.name,
         adminData.email,
         adminData.password
       );
 
-      // 2. Se o registro na API funcionar...
       if (result.success) {
-        
-        // --- INÍCIO DA CORREÇÃO ---
-        
-        // Tenta pegar o ID da resposta da API.
-        // Se a API não retornar um ID, gera um ID local temporário.
-        const newUserId = (result.data && result.data.id) 
-                            ? result.data.id.toString() 
-                            : `local-user-${Date.now()}`;
-
-        // CRIA O NOVO USUÁRIO USANDO OS DADOS DO FORMULÁRIO (adminData),
-        // E NÃO OS DADOS DA RESPOSTA DA API (result.data).
-        const newUser: User = {
-          id: newUserId,
-          name: adminData.name,   // <-- CORRIGIDO: Usa o 'name' do formulário
-          email: adminData.email, // <-- CORRIGIDO: Usa o 'email' do formulário
-        };
-        // --- FIM DA CORREÇÃO ---
-        
-        // 3. Adiciona o usuário (agora completo) ao estado local
-        setAdmins((prevAdmins) => [...prevAdmins, newUser]);
+        // Recarrega a lista completa para garantir sincronia
+        await refreshAdmins();
       }
       
-      // 4. Retorna o resultado (sucesso ou falha) para o modal
       return result;
-
     } catch (error: any) {
       console.error("Erro em addAdmin:", error);
       return {
@@ -103,9 +81,37 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateAdmin = async (id: string, name: string, email: string): Promise<RegisterResult> => {
+    const result = await editUser({ id, name, email });
+    if (result.success) {
+      await refreshAdmins(); // Recarrega lista
+    }
+    return result;
+  };
+
+  const removeAdmin = async (id: string): Promise<RegisterResult> => {
+    const result = await deleteUser(id);
+    if (result.success) {
+      await refreshAdmins(); // Recarrega lista
+    }
+    return result;
+  };
+
+  const changePassword = async (email: string, password: string, newPassword: string): Promise<RegisterResult> => {
+    return await changeUserPassword({ email, password, new_password: newPassword });
+  };
+
   return (
-    // 7. Expor os novos estados no Provider
-    <AdminContext.Provider value={{ admins, addAdmin, isLoading, error }}>
+    <AdminContext.Provider value={{ 
+      admins, 
+      addAdmin, 
+      updateAdmin,
+      removeAdmin,
+      changePassword,
+      refreshAdmins, // <-- Exportando a função
+      isLoading, 
+      error 
+    }}>
       {children}
     </AdminContext.Provider>
   );

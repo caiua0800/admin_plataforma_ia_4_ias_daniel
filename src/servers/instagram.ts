@@ -5,7 +5,6 @@ import type {
   Message,
   InstagramStats,
 } from "../types";
-// Importa o tipo do arquivo que criamos acima
 import { MessagesResponse } from "./instagramTypes"; 
 
 const getValidString = (value: any): string | undefined => {
@@ -35,9 +34,11 @@ export const getInstagramChats = async (page = 1): Promise<LeadInstagram[]> => {
       followers_count: item.json.followers_count,
       follows_me: item.json.follows_me,
       messages: [], 
-      // Valores padrão para paginação
       currentPage: 0,
       hasMoreMessages: true,
+      
+      // --- MUDANÇA AQUI: Mapeando o campo is_blocked ---
+      is_blocked: item.json.is_blocked, 
     }));
 
     return chats;
@@ -48,9 +49,7 @@ export const getInstagramChats = async (page = 1): Promise<LeadInstagram[]> => {
   }
 };
 
-/**
- * Busca as estatísticas de chats do Instagram.
- */
+// ... (o restante do arquivo getInstagramStats, getInstagramMessages, sendInstagramMessage, toggleChatBlock permanece igual) ...
 export const getInstagramStats = async (): Promise<InstagramStats> => {
   try {
     const data = await apiFetch(`api/stats?tipo=instagram`, {
@@ -63,28 +62,19 @@ export const getInstagramStats = async (): Promise<InstagramStats> => {
   }
 };
 
-/**
- * Busca as mensagens de um chat específico do Instagram.
- * Filtra as mensagens "%blocked_chat%".
- * Lida com respostas nulas da API (páginas que não existem).
- */
 export const getInstagramMessages = async (chatId: string, page = 1): Promise<MessagesResponse> => {
   const API_PATH_ID = "a5759361-2234-4ec2-b75e-890e86a917b3";
   
   try {
-    // data PODE ser 'null' se a API retornar 200 OK com corpo vazio (página > 10)
     const data: any[] | null = await apiFetch(`${API_PATH_ID}/api/chats/instagram/${chatId}/messages?page=${page}`, {
       method: 'GET'
     });
 
-    // Se 'data' for nulo (API vazia) ou não for um array, retorna vazio.
-    // Isso corrige o erro 'SyntaxError' e 'Unexpected end of JSON input'
     if (!data || !Array.isArray(data)) {
       console.log(`[getInstagramMessages] Página ${page} não retornou dados. Fim da paginação.`);
       return { messages: [], lastClientMessageDate: undefined };
     }
 
-    // Ordena as mensagens
     data.sort((a, b) => {
       const dateA = new Date(a.json.date_created).getTime();
       const dateB = new Date(b.json.date_created).getTime();
@@ -94,12 +84,10 @@ export const getInstagramMessages = async (chatId: string, page = 1): Promise<Me
       return (a.json.is_reply ? 1 : 0) - (b.json.is_reply ? 1 : 0);
     });
 
-    // Filtra as mensagens "%blocked_chat%" ANTES de mapear
     const filteredData = data.filter((item: any) => {
       return item.json.message !== "%blocked_chat%";
     });
 
-    // Mapeia apenas as mensagens filtradas
     const messages: Message[] = filteredData.map((item: any) => ({
       id: item.json.id.toString(),
       message: item.json.message,
@@ -121,9 +109,6 @@ export const getInstagramMessages = async (chatId: string, page = 1): Promise<Me
   }
 };
 
-/**
- * Envia uma mensagem pelo Instagram.
- */
 export const sendInstagramMessage = async (chatId: string, message: string): Promise<Message> => {
   const body = {
     tipo: "instagram",
@@ -161,17 +146,12 @@ export const sendInstagramMessage = async (chatId: string, message: string): Pro
   }
 };
 
-
-/**
- * Bloqueia ou desbloqueia a IA para um chat específico.
- */
 export const toggleChatBlock = async (chatId: string): Promise<any> => {
   const body = {
     chat_id: chatId,
   };
 
   try {
-    // Usa o apiFetch (que já tem o token JWT)
     const data = await apiFetch(`api/chat/block`, {
       method: 'POST',
       body: JSON.stringify(body),

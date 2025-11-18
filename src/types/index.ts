@@ -9,8 +9,8 @@ export interface Message {
 export interface LeadInstagram {
   id: string;
   name?: string;
-  username: string; // O @
-  avatarUrl?: string; // URL da foto de perfil (pode ser undefined)
+  username: string; 
+  avatarUrl?: string; 
   status?: number;
   lastMessageText: string; 
   last_message_date: Date | string;
@@ -19,13 +19,16 @@ export interface LeadInstagram {
   
   followers_count?: number;
   follows_me?: boolean;
-  hasUnread?: boolean; // Para a notificação
-  lastClientMessageDate?: Date; // Para a regra de 24h
+  hasUnread?: boolean; 
+  lastClientMessageDate?: Date; 
 
-  // --- CAMPOS ADICIONADOS ---
-  currentPage?: number;     // Rastreia a última página carregada
-  hasMoreMessages?: boolean; // Indica se há mais páginas para buscar
+  currentPage?: number;     
+  hasMoreMessages?: boolean; 
+  
+  // --- CAMPO ADICIONADO ---
+  is_blocked?: boolean; // Indica se a IA está pausada para este chat
 }
+// ... (o restante do arquivo permanece igual)
 export interface LeadWebsite {
   id: string;
   name?: string;
@@ -53,7 +56,7 @@ export interface User {
 }
 export interface Chamado {
   id: string;
-  leadId: string; // Para vincular ao LeadInstagram
+  leadId: string;
   name: string;
   cpf: string;
   descricao: string;
