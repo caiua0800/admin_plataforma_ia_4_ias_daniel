@@ -3,7 +3,7 @@ import apiFetch from './apiClient'; // 1. O 'apiFetch' AINDA é usado pelas outr
 
 // --- NOVO: Adicionar constantes e helper para autenticação estática ---
 // (Copiado de authApi.ts para ser usado APENAS pela função askInternalApi)
-const BASE_URL = "https://65b10343b15c.ngrok-free.app/webhook/";
+const BASE_URL = import.meta.env.VITE_BASE_ROUTE;
 const API_KEY = "minha_chave_de_api"; // <-- Verifique se esta chave está correta
 
 /**

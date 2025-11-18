@@ -4,12 +4,13 @@ import {
   ChatBubbleLeftRightIcon,
   UsersIcon,
   SparklesIcon,
-  ArrowRightOnRectangleIcon, // 1. Importar ícone de Sair
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import * as S from "./Sidebar.styles";
-import { useNavigate } from "react-router-dom"; // 2. Importar useNavigate
+// 1. Remover useNavigate
+// import { useNavigate } from "react-router-dom"; 
 
-// ... (navigationGroups permanece igual)
+// ... (navigationGroups permanece igual) ...
 const navigationGroups = [
   {
     title: "GERAL",
@@ -44,16 +45,18 @@ const navigationGroups = [
   },
 ];
 
+// 2. Adicionar a prop onLogoutClick
+interface SidebarProps {
+  onLogoutClick: () => void;
+}
 
-export function Sidebar() {
-  // 3. Hook para navegação
-  const navigate = useNavigate();
+export function Sidebar({ onLogoutClick }: SidebarProps) {
+  // 3. Remover useNavigate
+  // const navigate = useNavigate();
 
-  // 4. Função de Logout
+  // 4. Função de Logout agora chama a prop
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    navigate("/login");
+    onLogoutClick();
   };
 
   return (
@@ -63,7 +66,6 @@ export function Sidebar() {
         <S.Title>Admin AI</S.Title>
       </S.Header>
       
-      {/* Navegação principal */}
       <S.Nav>
         {navigationGroups.map((group) => (
           <S.Section key={group.title}>
@@ -77,7 +79,6 @@ export function Sidebar() {
         ))}
       </S.Nav>
 
-      {/* 5. Adicionar o Footer com o botão de Sair */}
       <S.Footer>
         <S.LogoutButton onClick={handleLogout}>
           <ArrowRightOnRectangleIcon />

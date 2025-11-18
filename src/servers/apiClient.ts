@@ -2,7 +2,7 @@
 import { refreshAccessToken, logout } from './authApi';
 
 // A URL base da sua API
-const BASE_URL = "https://65b10343b15c.ngrok-free.app/webhook/";
+const BASE_URL = import.meta.env.VITE_BASE_ROUTE;
 
 // Esta trava impede que 10 chamadas de API falhem ao mesmo tempo
 // e tentem dar 'refresh' 10 vezes. Apenas a primeira tenta.
@@ -34,7 +34,7 @@ const apiFetch = async (path: string, options: RequestInit = {}) => {
 
     try {
       // --- 3. Tenta renovar o token ---
-      // 'refreshAccessToken' salva os novos tokens no localStorage
+      // 'refreshAccessToken' agora joga um erro em caso de falha (e já chama o logout)
       const newAccessToken = await refreshAccessToken(); 
       
       console.log("apiClient: Token renovado com sucesso. Tentando requisição original...");
@@ -46,8 +46,9 @@ const apiFetch = async (path: string, options: RequestInit = {}) => {
       
     } catch (refreshError) {
       // Se a *renovação* falhar (ex: refresh token também expirou)
-      console.error("apiClient: Falha ao renovar token. Deslogando.", refreshError);
-      logout(); // Desloga o usuário
+      console.error("apiClient: Falha ao renovar token. O AppLayout deve redirecionar.", refreshError);
+      // NÃO precisamos mais chamar logout() ou window.location.href AQUI
+      // Apenas repassamos o erro para parar a execução atual
       throw new Error('Sua sessão expirou. Por favor, faça login novamente.');
     } finally {
       isRefreshing = false; // Libera a trava
@@ -55,7 +56,6 @@ const apiFetch = async (path: string, options: RequestInit = {}) => {
   }
 
   // --- 5. Trata outros erros (ex: 404, 500) ---
-  // Se a resposta AINDA não estiver OK (ex: o refresh falhou e deu 401 de novo)
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({})); // Tenta ler o erro
     throw new Error(errorData.error || `Erro na API: ${response.statusText}`);
@@ -63,12 +63,25 @@ const apiFetch = async (path: string, options: RequestInit = {}) => {
 
   // --- 6. Retorna a resposta JSON em caso de sucesso ---
   
-  // Se a resposta for 204 (No Content), não há JSON para 'parsear'
   if (response.status === 204) {
-    return null;
+    return null; // Retorna nulo para "No Content"
   }
   
-  return response.json();
+  // --- CORREÇÃO APLICADA AQUI ---
+  try {
+    // Tenta ler o JSON
+    return await response.json(); 
+  } catch (error) {
+    // Se falhar (ex: "Unexpected end of JSON input")
+    if (error instanceof SyntaxError) {
+      console.warn(`apiClient: A API em ${path} retornou 200 OK, mas o corpo estava vazio ou malformatado.`);
+      // Retorna 'null' que pode ser tratado como "sem mais dados"
+      return null; 
+    }
+    // Se for outro tipo de erro, lança
+    throw error;
+  }
+  // --- FIM DA CORREÇÃO ---
 };
 
 export default apiFetch;

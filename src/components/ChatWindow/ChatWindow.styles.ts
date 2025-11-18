@@ -1,5 +1,11 @@
 // src/components/ChatWindow/ChatWindow.styles.ts
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
+
+// --- ANIMAÇÃO DE SPINNER ADICIONADA ---
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
 
 export const Container = styled.div`
   flex: 1; /* Ocupa o espaço restante */
@@ -9,7 +15,7 @@ export const Container = styled.div`
   position: relative;
   max-width: 80;
 `;
-
+// ... (Placeholder, Header, Name, PauseButton sem alteração) ...
 export const Placeholder = styled.div`
   flex: 1;
   display: flex;
@@ -60,6 +66,10 @@ export const PauseButton = styled.button<{ $isPaused: boolean }>`
     transform: translateY(1px);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
   }
+  &:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
 `;
 
 export const MessagesArea = styled.div`
@@ -80,13 +90,29 @@ export const MessagesArea = styled.div`
   }
 `;
 
+// --- SPINNER CONTAINER ADICIONADO ---
+export const SpinnerContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: #4f46e5;
+    animation: ${spin} 1s linear infinite;
+  }
+`;
+// --- FIM DO SPINNER ---
+
 export const MessageBox = styled.div<{ $isReply: boolean }>`
+// ... (sem alteração) ...
   display: flex;
   justify-content: ${(props) => (props.$isReply ? "flex-end" : "flex-start")};
 `;
 
-// Este wrapper agrupa a Bolha da Mensagem e o Horário
 export const MessageWrapper = styled.div<{ $isReply: boolean }>`
+// ... (sem alteração) ...
   display: flex;
   flex-direction: column;
   align-items: ${(props) => (props.$isReply ? "flex-end" : "flex-start")};
@@ -94,15 +120,8 @@ export const MessageWrapper = styled.div<{ $isReply: boolean }>`
 `;
 
 export const MessageBubble = styled.div<{ $isReply: boolean }>`
-  /* --- CORREÇÃO AQUI --- */
-  /* Removemos o max-width fixo de 70% para que a bolha possa 
-     se expandir até o limite do MessageWrapper (que é 90%) */
-  /* max-width: 70%; */ 
-  
-  /* Adicionamos 'word-break' para garantir que textos longos sem 
-     espaço quebrem corretamente e não estourem a bolha */
+// ... (sem alteração) ...
   word-break: break-word;
-
   padding: 12px 16px;
   border-radius: 22px;
   color: white;
@@ -127,7 +146,6 @@ export const MessageBubble = styled.div<{ $isReply: boolean }>`
     line-height: 1.6;
   }
 
-  /* * NOVO ESTILO DE TABELA (COMO O CHATGPT/GEMINI) * */
   table {
     width: 100%;
     margin-top: 12px;
@@ -152,20 +170,20 @@ export const MessageBubble = styled.div<{ $isReply: boolean }>`
 `;
 
 export const Timestamp = styled.span<{ $isReply: boolean }>`
+// ... (sem alteração) ...
   font-size: 0.75rem; /* 12px */
   color: #64748b; /* slate-500 */
   margin-top: 4px;
-  /* Adiciona um leve recuo para alinhar com o padding da bolha */
   margin-right: ${(props) => (props.$isReply ? "12px" : "0")};
   margin-left: ${(props) => (props.$isReply ? "0" : "12px")};
 `;
 
 export const InputArea = styled.div`
+// ... (sem alteração) ...
   position: absolute;
   bottom: 24px;
   left: 24px;
   right: 24px;
-  
   background-color: rgba(0, 12, 51, 0.6);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
@@ -176,12 +194,14 @@ export const InputArea = styled.div`
 `;
 
 export const InputWrapper = styled.div`
+// ... (sem alteração) ...
   position: relative;
   display: flex;
   align-items: center;
 `;
 
 export const Input = styled.input`
+// ... (sem alteração) ...
   width: 100%;
   padding: 16px 60px 16px 22px;
   background-color: transparent;
@@ -201,6 +221,7 @@ export const Input = styled.input`
 `;
 
 export const SendButton = styled.button`
+// ... (sem alteração) ...
   position: absolute;
   top: 50%;
   right: 10px;

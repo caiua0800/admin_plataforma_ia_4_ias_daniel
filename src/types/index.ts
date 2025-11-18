@@ -21,6 +21,10 @@ export interface LeadInstagram {
   follows_me?: boolean;
   hasUnread?: boolean; // Para a notificação
   lastClientMessageDate?: Date; // Para a regra de 24h
+
+  // --- CAMPOS ADICIONADOS ---
+  currentPage?: number;     // Rastreia a última página carregada
+  hasMoreMessages?: boolean; // Indica se há mais páginas para buscar
 }
 export interface LeadWebsite {
   id: string;
@@ -56,7 +60,6 @@ export interface Chamado {
   dateCreated: Date;
 }
 
-// --- NOVO TIPO ADICIONADO ---
 export interface InstagramStats {
   total_chats: string;
   active_today_chats: string;
