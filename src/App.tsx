@@ -144,15 +144,17 @@ function AppLayout() {
       const notificationMessage = chatData.user_message || chatData.last_message_text;
       console.log(`[NotificationLogic] 5. Texto da notificação: "${notificationMessage}"`);
 
-      // --- CORREÇÃO AQUI: Tratamento do tipo de chatData.name ---
-      const notificationTitle = chatData.username || (typeof chatData.name === 'string' ? chatData.name : "Nova Mensagem");
+      // --- CORREÇÃO AQUI: Validação segura do título ---
+      // Garante que 'name' só é usado se for string (evita erro com booleano)
+      const safeName = typeof chatData.name === 'string' ? chatData.name : undefined;
+      const title = chatData.username || safeName || "Nova Mensagem";
 
       addNotification({
         chatId: chatData.id,
         platform: platform,
-        title: notificationTitle, 
+        title: title,
         message: notificationMessage,
-        profilePicture: chatData.profile_picture, 
+        profilePicture: chatData.profile_picture,
       });
     } else {
       console.log("[NotificationLogic] 5. NÃO. Notificação suprimida (chat ou página já está ativo).");
