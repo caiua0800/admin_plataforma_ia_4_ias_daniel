@@ -10,18 +10,20 @@ import {
   useLayoutEffect 
 } from "react";
 import * as S from "./ChatWindow.styles";
-import type { LeadInstagram as LeadInstagramType } from "../../types";
+import type { BaseChat } from "../../types";
 
 interface ChatWindowProps {
-  chat: LeadInstagramType | null;
+  chat: BaseChat | null;
   className?: string;
   onSendMessage: (message: string) => void;
-  // Prop para API de pause/unpause (que é passada pelo LeadsInstagram)
+  // Prop para API de pause/unpause
   onPauseToggle?: (chatId: string) => Promise<any>; 
   // Props para Infinite Scroll
   onLoadMore: () => void;
   isLoadingMore: boolean;
   hasMoreMessages: boolean;
+  // Prop para mostrar ou esconder o input
+  showInput?: boolean;
 }
 
 export function ChatWindow({ 
@@ -31,34 +33,29 @@ export function ChatWindow({
   onPauseToggle,
   onLoadMore,
   isLoadingMore,
-  hasMoreMessages
+  hasMoreMessages,
+  showInput = true
 }: ChatWindowProps) {
   
-  // isAiPaused será sincronizado com chat.is_blocked
   const [isAiPaused, setIsAiPaused] = useState(false); 
   const [newMessage, setNewMessage] = useState("");
   const [isBlocked, setIsBlocked] = useState(false);
   const [placeholderText, setPlaceholderText] = useState("A IA está respondendo");
-  const [isTogglingPause, setIsTogglingPause] = useState(false); // Loading do botão
+  const [isTogglingPause, setIsTogglingPause] = useState(false);
 
   const messagesAreaRef = useRef<HTMLDivElement>(null);
   const [prevScrollHeight, setPrevScrollHeight] = useState<number | null>(null);
 
-  // --- CORREÇÃO DO BUG: SINCRONIZAÇÃO COM A API ---
   useEffect(() => {
     if (chat) {
-      // Se chat.is_blocked for true, a IA está pausada.
-      // O !! converte o valor (true/false) para boolean
       setIsAiPaused(!!chat.is_blocked);
     } else {
       setIsAiPaused(false);
     }
     setIsTogglingPause(false);
-  }, [chat?.id, chat?.is_blocked]); // Roda toda vez que o ID ou o estado de bloqueio da API muda
-  // --- FIM DA CORREÇÃO ---
+  }, [chat?.id, chat?.is_blocked]);
 
-
-  // Lógica de bloqueio 24h e Placeholder (sem alteração)
+  // Lógica de bloqueio 24h e Placeholder
   useEffect(() => {
     if (!chat) return;
     const lastClientMessageDate = chat.lastClientMessageDate;
@@ -79,7 +76,7 @@ export function ChatWindow({
     }
   }, [chat, isAiPaused, chat?.lastClientMessageDate]);
   
-  // Lógica de Scroll (necessária para Infinite Scroll)
+  // Lógica de Scroll
   useLayoutEffect(() => {
     if (messagesAreaRef.current) {
       messagesAreaRef.current.scrollTop = messagesAreaRef.current.scrollHeight;
@@ -112,7 +109,6 @@ export function ChatWindow({
     );
   }
 
-  // Funções de envio (sem alteração)
   const handleSendClick = () => {
     if (newMessage.trim()) {
       onSendMessage(newMessage.trim());
@@ -126,7 +122,6 @@ export function ChatWindow({
     }
   };
   
-  // Lógica do botão de pause
   const handlePauseClick = async () => {
     if (!chat || isTogglingPause) return; 
 
@@ -134,17 +129,13 @@ export function ChatWindow({
       setIsTogglingPause(true);
       try {
         await onPauseToggle(chat.id);
-        // O estado isAiPaused será atualizado pelo useEffect quando o chat.is_blocked mudar
-        // Não fazemos o toggle local aqui.
       } catch (error) {
         console.error("Falha ao tentar pausar a IA:", error);
         alert("Erro ao tentar pausar a IA. Tente novamente.");
-        // Se a API falhar, o isAiPaused manterá o valor anterior (o correto)
       } finally {
         setIsTogglingPause(false);
       }
     } else {
-      // Fallback para páginas sem API (mantém o toggle local)
       setIsAiPaused(!isAiPaused);
     }
   };
@@ -152,10 +143,8 @@ export function ChatWindow({
   const isInputDisabled = isBlocked || !isAiPaused;
   const getPauseButtonText = () => {
     if (isTogglingPause) return "Aguarde...";
-    // O texto agora depende do estado sincronizado
     return isAiPaused ? "Reativar IA" : "Pausar IA";
   };
-  // A cor é determinada pelo estado sincronizado
   const isButtonPaused = isAiPaused;
 
   return (
@@ -198,23 +187,25 @@ export function ChatWindow({
         })}
       </S.MessagesArea>
       
-      <S.InputArea>
-        <S.InputWrapper>
-          <S.Input
-            placeholder={placeholderText}
-            disabled={isInputDisabled}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <S.SendButton 
-            disabled={isInputDisabled || !newMessage.trim()}
-            onClick={handleSendClick}
-          >
-            <PaperAirplaneIcon width={24} height={24} />
-          </S.SendButton>
-        </S.InputWrapper>
-      </S.InputArea>
+      {showInput && (
+        <S.InputArea>
+          <S.InputWrapper>
+            <S.Input
+              placeholder={placeholderText}
+              disabled={isInputDisabled}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <S.SendButton 
+              disabled={isInputDisabled || !newMessage.trim()}
+              onClick={handleSendClick}
+            >
+              <PaperAirplaneIcon width={24} height={24} />
+            </S.SendButton>
+          </S.InputWrapper>
+        </S.InputArea>
+      )}
     </S.Container>
   );
 }
